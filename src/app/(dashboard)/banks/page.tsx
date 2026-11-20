@@ -1,49 +1,54 @@
-import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
+"use client";
+
+import { useState, useEffect } from "react";
 import { BankSlotCard } from "@/components/banks/BankSlotCard";
 import { EmptySlotCard } from "@/components/banks/EmptySlotCard";
+import { getBankSlots } from "@/lib/storage";
 import type { BankSlot } from "@/types/bank";
 
-export default async function BanksPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+export default function BanksPage() {
+  const [bankSlots, setBankSlots] = useState<BankSlot[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  if (!user) redirect("/login");
+  function loadSlots() {
+    const slots = getBankSlots();
+    setBankSlots(slots);
+    setLoading(false);
+  }
 
-  // Fetch bank slots with their associated banks
-  const { data: slots } = await supabase
-    .from("bank_slots")
-    .select(`
-      *,
-      bank:banks(*)
-    `)
-    .eq("user_id", user.id)
-    .order("slot_number", { ascending: true });
+  useEffect(() => {
+    loadSlots();
+  }, []);
 
-  // If no slots exist yet (new user, trigger may not have fired), show empty state
-  const bankSlots: BankSlot[] = slots && slots.length > 0
-    ? (slots as unknown as BankSlot[])
-    : [
-        { id: "temp-1", user_id: user.id, slot_number: 1 as const, bank_id: null, is_occupied: false, created_at: "", updated_at: "", bank: null },
-        { id: "temp-2", user_id: user.id, slot_number: 2 as const, bank_id: null, is_occupied: false, created_at: "", updated_at: "", bank: null },
-        { id: "temp-3", user_id: user.id, slot_number: 3 as const, bank_id: null, is_occupied: false, created_at: "", updated_at: "", bank: null },
-      ];
+  if (loading) {
+    return (
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-muted rounded w-48" />
+          <div className="h-4 bg-muted rounded w-96" />
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 pt-4">
+            <div className="h-64 bg-muted rounded-xl" />
+            <div className="h-64 bg-muted rounded-xl" />
+            <div className="h-64 bg-muted rounded-xl" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-foreground">My Banks</h1>
         <p className="text-muted-foreground mt-1">
-          Manage your banking simulations. You have 3 bank slots available.
+          Manage your banking simulations. You have 3 persistent bank slots available.
         </p>
       </div>
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {bankSlots.map((slot) =>
           slot.is_occupied && slot.bank ? (
-            <BankSlotCard key={slot.id} slot={slot} />
+            <BankSlotCard key={slot.id} slot={slot} onDeleted={loadSlots} />
           ) : (
             <EmptySlotCard key={slot.id} slotNumber={slot.slot_number} />
           )

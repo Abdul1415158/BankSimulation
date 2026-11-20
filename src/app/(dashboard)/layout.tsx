@@ -1,6 +1,8 @@
-import { redirect } from "next/navigation";
+"use client";
+
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -9,27 +11,24 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Landmark, User, LogOut, Settings } from "lucide-react";
+import { Landmark, User, LogOut } from "lucide-react";
+import { getCurrentUser, logoutUser, UserProfile } from "@/lib/storage";
 
-async function signOut() {
-  "use server";
-  const supabase = await createClient();
-  await supabase.auth.signOut();
-  redirect("/");
-}
-
-export default async function DashboardLayout({
+export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const router = useRouter();
+  const [user, setUser] = useState<UserProfile | null>(null);
 
-  if (!user) {
-    redirect("/login");
+  useEffect(() => {
+    setUser(getCurrentUser());
+  }, []);
+
+  function handleSignOut() {
+    logoutUser();
+    router.push("/");
   }
 
   return (
@@ -51,15 +50,15 @@ export default async function DashboardLayout({
                   <User className="size-3.5 text-white" />
                 </div>
                 <span className="hidden sm:inline text-sm text-muted-foreground">
-                  {user.email}
+                  {user?.email || "Banker"}
                 </span>
               </Button>
             }
           />
           <DropdownMenuContent align="end" className="w-56">
             <div className="px-2 py-1.5">
-              <p className="text-sm font-medium">{user.user_metadata?.display_name || "User"}</p>
-              <p className="text-xs text-muted-foreground">{user.email}</p>
+              <p className="text-sm font-medium">{user?.name || "Chief Executive"}</p>
+              <p className="text-xs text-muted-foreground">{user?.email || "banker@bankverse.com"}</p>
             </div>
             <DropdownMenuSeparator />
             <DropdownMenuItem render={<Link href="/banks" className="flex items-center w-full" />}>
@@ -67,12 +66,10 @@ export default async function DashboardLayout({
               My Banks
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <form action={signOut} className="w-full">
-              <DropdownMenuItem render={<button type="submit" className="flex items-center w-full" />}>
-                <LogOut className="size-4 mr-2" />
-                Log Out
-              </DropdownMenuItem>
-            </form>
+            <DropdownMenuItem render={<button type="button" onClick={handleSignOut} className="flex items-center w-full text-red-600" />}>
+              <LogOut className="size-4 mr-2 text-red-600" />
+              Log Out
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </header>

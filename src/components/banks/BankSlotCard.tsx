@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,27 +16,29 @@ import {
   Globe,
   Trash2,
   Play,
-  Eye,
+  TrendingUp,
 } from "lucide-react";
 import { cn } from "cn";
 
 const statusColors: Record<string, string> = {
-  active: "bg-emerald-100 text-emerald-700",
-  paused: "bg-amber-100 text-amber-700",
-  bankrupt: "bg-red-100 text-red-700",
-  completed: "bg-blue-100 text-blue-700",
-  seized: "bg-red-200 text-red-800",
+  active: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
+  paused: "bg-amber-500/20 text-amber-300 border-amber-500/30",
+  bankrupt: "bg-red-500/20 text-red-400 border-red-500/30",
+  completed: "bg-blue-500/20 text-blue-300 border-blue-500/30",
+  seized: "bg-red-600/20 text-red-300 border-red-600/30",
 };
 
-const typeBorderColors: Record<string, string> = {
-  retail: "border-l-blue-500",
-  corporate: "border-l-violet-500",
-  universal: "border-l-cyan-500",
+const bankBackgrounds: Record<string, string> = {
+  retail: "https://images.unsplash.com/photo-1541888946425-d0fbb186f5f8?auto=format&fit=crop&w=800&q=80",
+  corporate: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=800&q=80",
+  universal: "https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&w=800&q=80",
 };
 
-export function BankSlotCard({ slot }: { slot: BankSlot }) {
+export function BankSlotCard({ slot, onDeleted }: { slot: BankSlot; onDeleted?: () => void }) {
   const [showDelete, setShowDelete] = useState(false);
   const bank = slot.bank!;
+
+  const bgImage = bankBackgrounds[bank.bank_type] || bankBackgrounds.universal;
 
   const timeSinceLastPlayed = (() => {
     const diff = Date.now() - new Date(bank.last_played_at).getTime();
@@ -52,81 +53,85 @@ export function BankSlotCard({ slot }: { slot: BankSlot }) {
   return (
     <>
       <Card
-        className={cn(
-          "relative overflow-hidden border-l-4 transition-all hover:shadow-md",
-          typeBorderColors[bank.bank_type] || "border-l-blue-500"
-        )}
+        className="relative overflow-hidden rounded-2xl border border-white/10 shadow-lg text-white bg-slate-950 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1"
       >
-        <CardContent className="p-5 space-y-4">
+        {/* Background Banking Architecture Photography with Gradient Overlay */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center opacity-30"
+          style={{ backgroundImage: `url('${bgImage}')` }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/85 to-blue-950/80 backdrop-blur-[1px]" />
+
+        <CardContent className="relative p-6 space-y-4 z-10 flex flex-col justify-between min-h-[300px]">
           {/* Header */}
-          <div className="flex items-start justify-between">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-                  Slot {slot.slot_number}
-                </span>
-                <Badge
-                  variant="secondary"
-                  className={cn("text-xs", statusColors[bank.status])}
-                >
-                  {bank.status}
-                </Badge>
-              </div>
-              <h3 className="text-lg font-bold text-foreground">{bank.name}</h3>
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-cyan-300 bg-cyan-950/80 border border-cyan-800/60 px-2 py-0.5 rounded-full">
+                Slot {slot.slot_number}
+              </span>
+              <Badge
+                variant="outline"
+                className={cn("text-xs uppercase font-semibold", statusColors[bank.status])}
+              >
+                {bank.status}
+              </Badge>
             </div>
-            <div className="size-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center">
-              <Building2 className="size-5 text-white" />
+
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-xl font-bold tracking-tight text-white">{bank.name}</h3>
+                <p className="text-xs text-white/60 mt-0.5">
+                  {BANK_TYPES[bank.bank_type]?.label || bank.bank_type}
+                </p>
+              </div>
+              <div className="size-11 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-400 p-0.5 shadow-md shrink-0">
+                <div className="size-full bg-slate-950/80 rounded-[10px] flex items-center justify-center">
+                  <Building2 className="size-5 text-cyan-300" />
+                </div>
+              </div>
             </div>
           </div>
 
           {/* Details */}
-          <div className="space-y-2 text-sm">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Building2 className="size-3.5" />
-              <span>{BANK_TYPES[bank.bank_type]?.label || bank.bank_type}</span>
+          <div className="space-y-2 py-2 text-xs border-y border-white/10 text-white/70">
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-1.5"><Globe className="size-3.5 text-cyan-400" /> Headquarters</span>
+              <span className="font-medium text-white">{bank.city}, {bank.country} ({bank.currency})</span>
             </div>
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Globe className="size-3.5" />
-              <span>
-                {bank.city}, {bank.country} · {bank.currency}
-              </span>
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-1.5"><Calendar className="size-3.5 text-cyan-400" /> Simulation Period</span>
+              <span className="font-mono-numbers font-medium text-white">{formatQuarter(bank.current_year, bank.current_quarter)}</span>
             </div>
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Calendar className="size-3.5" />
-              <span>{formatQuarter(bank.current_year, bank.current_quarter)}</span>
-              <span className="text-muted-foreground/50">·</span>
-              <span>Created {formatDate(bank.created_at)}</span>
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-1.5"><TrendingUp className="size-3.5 text-cyan-400" /> Strategy</span>
+              <span className="font-medium text-cyan-300">{bank.initial_strategy.replace("_", " ")}</span>
             </div>
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Clock className="size-3.5" />
-              <span>Last played {timeSinceLastPlayed}</span>
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-1.5"><Clock className="size-3.5 text-cyan-400" /> Last Activity</span>
+              <span className="text-white/60">{timeSinceLastPlayed}</span>
             </div>
           </div>
 
           {/* Actions */}
-          <div className="space-y-2 pt-2">
+          <div className="space-y-2 pt-1">
             <Button
               asChild
-              className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white border-0"
+              className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-semibold border-0 shadow-md h-9 text-xs"
               size="sm"
             >
               <Link href={`/bank/${bank.id}`}>
-                <Play className="size-3.5 mr-1.5" />
-                Open Bank
+                <Play className="size-3.5 mr-1.5 fill-current" />
+                Open Bank Command Center
               </Link>
             </Button>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" className="flex-1" disabled>
-                <Eye className="size-3.5 mr-1.5" />
-                Summary
-              </Button>
+            <div className="flex justify-end">
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                className="text-red-400 hover:text-red-300 hover:bg-red-950/40 text-xs h-7 px-2"
                 onClick={() => setShowDelete(true)}
               >
-                <Trash2 className="size-3.5" />
+                <Trash2 className="size-3.5 mr-1" /> Delete Slot
               </Button>
             </div>
           </div>
@@ -138,6 +143,7 @@ export function BankSlotCard({ slot }: { slot: BankSlot }) {
         onOpenChange={setShowDelete}
         bankId={bank.id}
         bankName={bank.name}
+        onDeleted={onDeleted}
       />
     </>
   );

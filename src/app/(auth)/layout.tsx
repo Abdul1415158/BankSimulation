@@ -24,8 +24,16 @@ export default function AuthLayout({
   return (
     <div className="min-h-screen flex">
       {/* Left branding panel */}
-      <div className="hidden lg:flex lg:w-1/2 animated-gradient relative flex-col justify-between p-12">
-        <div>
+      <div className="hidden lg:flex lg:w-1/2 relative flex-col justify-between p-12 overflow-hidden bg-slate-950">
+        <div 
+          className="absolute inset-0 bg-cover bg-center"
+          style={{
+            backgroundImage: `url('https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&w=1800&q=80')`,
+          }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/85 to-blue-950/90 backdrop-blur-[1px]" />
+        
+        <div className="relative z-10">
           <Link href="/" className="flex items-center gap-2">
             <div className="size-9 rounded-lg bg-white/10 backdrop-blur flex items-center justify-center border border-white/20">
               <Landmark className="size-5 text-white" />
@@ -34,7 +42,7 @@ export default function AuthLayout({
           </Link>
         </div>
 
-        <div className="space-y-8">
+        <div className="relative z-10 space-y-8">
           <div>
             <h2 className="text-3xl font-bold text-white mb-3">
               Build Your Bank.
@@ -61,7 +69,7 @@ export default function AuthLayout({
           </div>
         </div>
 
-        <p className="text-xs text-white/30">
+        <p className="relative z-10 text-xs text-white/30">
           &copy; {new Date().getFullYear()} BANKVERSE. Educational simulation
           platform.
         </p>

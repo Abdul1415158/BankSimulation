@@ -1,160 +1,146 @@
-import { createClient } from "@/lib/supabase/server";
-import { notFound } from "next/navigation";
+"use client";
+
+import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { formatCurrency, formatPercent } from "@/lib/formatters";
+import { formatCurrency } from "@/lib/formatters";
 import {
   Zap,
   AlertTriangle,
   ShieldAlert,
   CheckCircle2,
-  Clock,
-  ArrowRight,
+  ShieldCheck,
 } from "lucide-react";
+import { getBank, getEvents, resolveEvent, CrisisEvent } from "@/lib/storage";
+import type { Bank } from "@/types/bank";
 
-export default async function EventsPage({
-  params,
-}: {
-  params: Promise<{ bankId: string }>;
-}) {
-  const { bankId } = await params;
-  const supabase = await createClient();
+export default function EventsPage() {
+  const params = useParams();
+  const bankId = params.bankId as string;
+  const [bank, setBank] = useState<Bank | null>(null);
+  const [events, setEvents] = useState<CrisisEvent[]>([]);
 
-  const { data: bank } = await supabase
-    .from("banks")
-    .select("currency")
-    .eq("id", bankId)
-    .single();
+  function reload() {
+    if (!bankId) return;
+    setBank(getBank(bankId));
+    setEvents(getEvents(bankId));
+  }
 
-  if (!bank) notFound();
+  useEffect(() => {
+    reload();
+  }, [bankId]);
 
-  const { data: crises } = await supabase
-    .from("crisis_events")
-    .select("*")
-    .eq("bank_id", bankId)
-    .order("created_at", { ascending: false });
+  if (!bank) return <div className="p-6">Loading crisis events...</div>;
 
-  const activeCrisis = (crises ?? []).find((c) => !c.resolved);
-  const resolvedCrises = (crises ?? []).filter((c) => c.resolved);
+  const currency = bank.currency || "USD";
+  const activeEvents = events.filter((e) => !e.resolved);
+  const resolvedEvents = events.filter((e) => e.resolved);
+
+  function handleChoose(eventId: string, optId: string) {
+    resolveEvent(bankId, eventId, optId);
+    reload();
+  }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Economic Events & Crisis Management</h1>
-          <p className="text-sm text-muted-foreground">
-            Respond to liquidity runs, macroeconomic shocks, regulatory audits, and cyber incidents.
-          </p>
-        </div>
+    <div className="p-6 space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Economic Events & Crisis Desk</h1>
+        <p className="text-sm text-muted-foreground">
+          Mitigate cybersecurity threats, employee resignations, and macroeconomic disruptions.
+        </p>
       </div>
 
-      {/* Active Crisis Card */}
-      {activeCrisis ? (
-        <Card className="border-destructive/40 bg-destructive/5 shadow-md">
-          <CardHeader className="pb-3">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="size-10 rounded-lg bg-destructive/15 text-destructive flex items-center justify-center">
-                  <ShieldAlert className="size-5" />
+      {activeEvents.length > 0 ? (
+        <div className="space-y-4">
+          <h2 className="text-sm font-semibold text-rose-600 uppercase tracking-wider flex items-center gap-1.5">
+            <AlertTriangle className="size-4" /> Urgent Incidents Requiring Executive Action ({activeEvents.length})
+          </h2>
+          {activeEvents.map((ev) => (
+            <Card key={ev.id} className="border-red-300 bg-red-50/20">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <Badge variant="destructive" className="text-xs uppercase font-bold">
+                    {ev.severity} Severity
+                  </Badge>
+                  <span className="text-xs text-muted-foreground font-mono">
+                    Year {ev.year}, Q{ev.quarter}
+                  </span>
                 </div>
-                <div>
-                  <CardTitle className="text-lg font-bold text-destructive">
-                    ACTIVE CRISIS: {activeCrisis.title}
-                  </CardTitle>
-                  <CardDescription className="text-xs">
-                    Triggered in Quarter {activeCrisis.quarter_triggered} • Severity: {activeCrisis.severity.toUpperCase()}
-                  </CardDescription>
-                </div>
-              </div>
-              <Badge variant="destructive" className="uppercase animate-pulse">
-                Action Required
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-foreground leading-relaxed">
-              {activeCrisis.description}
-            </p>
-
-            <div className="pt-2">
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-                Available Management Response Pathways
-              </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {(activeCrisis.options ?? []).map((opt: any) => (
-                  <div
-                    key={opt.id}
-                    className="p-3 rounded-lg border border-border bg-card hover:border-primary/50 transition-all flex flex-col justify-between"
-                  >
-                    <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm font-semibold">{opt.label}</span>
-                        <span className="text-xs font-mono-numbers text-destructive font-medium">
-                          {formatCurrency(opt.cost, bank.currency)}
-                        </span>
+                <CardTitle className="text-lg text-foreground mt-2">{ev.title}</CardTitle>
+                <CardDescription className="text-sm text-foreground/80 leading-relaxed">
+                  {ev.description}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3 pt-0">
+                <p className="text-xs font-semibold uppercase text-muted-foreground">Mitigation Choices:</p>
+                <div className="grid md:grid-cols-2 gap-3">
+                  {ev.options.map((opt) => (
+                    <div
+                      key={opt.id}
+                      className="p-4 rounded-xl border border-border bg-card flex flex-col justify-between space-y-3 hover:border-blue-400 transition-colors"
+                    >
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <p className="font-semibold text-sm">{opt.label}</p>
+                          <span className="font-mono-numbers text-xs font-bold text-red-600">
+                            {formatCurrency(opt.cost, currency)}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground leading-relaxed">{opt.description}</p>
                       </div>
-                      <p className="text-xs text-muted-foreground mb-3">
-                        {opt.description}
-                      </p>
-                    </div>
-                    <div className="flex items-center justify-between pt-2 border-t border-border/60 text-xs text-muted-foreground">
-                      <span>Mitigates: {Math.round(opt.mitigationPct * 100)}%</span>
-                      <Button size="xs" variant="outline" className="h-6 text-xs">
-                        Select Plan
+                      <Button
+                        size="sm"
+                        onClick={() => handleChoose(ev.id, opt.id)}
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs h-8"
+                      >
+                        Authorize Decision
                       </Button>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       ) : (
-        <Card className="border-emerald-500/30 bg-emerald-500/5">
-          <CardContent className="py-6 flex items-center gap-4">
-            <div className="size-10 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
-              <CheckCircle2 className="size-5" />
+        <Card className="border-emerald-200 bg-emerald-50/20">
+          <CardContent className="p-8 text-center space-y-2">
+            <div className="size-12 rounded-full bg-emerald-100 text-emerald-600 mx-auto flex items-center justify-center">
+              <ShieldCheck className="size-6" />
             </div>
-            <div>
-              <h3 className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">
-                Operating Conditions Normal
-              </h3>
-              <p className="text-xs text-muted-foreground">
-                No active crises detected. Liquidity, credit delinquency, and regulatory indicators are currently within standard operating tolerances.
-              </p>
-            </div>
+            <h3 className="text-base font-bold text-foreground">Operational Status Clean</h3>
+            <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+              No active crises or regulatory inquiries are pending this quarter. Maintain capital buffers and surveillance.
+            </p>
           </CardContent>
         </Card>
       )}
 
-      {/* Historical Log */}
+      {/* Resolved Incident Log */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base font-semibold">Incident & Crisis History</CardTitle>
-          <CardDescription className="text-xs">
-            Audit record of prior market shocks, management decisions, and remediation outcomes.
-          </CardDescription>
+          <CardTitle className="text-base font-bold">Historical Crisis Log</CardTitle>
+          <CardDescription className="text-xs">Archive of resolved incidents and management decisions.</CardDescription>
         </CardHeader>
         <CardContent>
-          {resolvedCrises.length > 0 ? (
+          {resolvedEvents.length > 0 ? (
             <div className="space-y-3">
-              {resolvedCrises.map((c) => (
-                <div key={c.id} className="p-3 rounded-lg border border-border flex items-center justify-between">
+              {resolvedEvents.map((ev) => (
+                <div key={ev.id} className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/20 text-xs">
                   <div>
-                    <h4 className="text-sm font-medium">{c.title}</h4>
-                    <span className="text-xs text-muted-foreground">Quarter {c.quarter_triggered} • Resolved</span>
+                    <p className="font-semibold text-foreground text-sm">{ev.title}</p>
+                    <p className="text-muted-foreground">Action executed: {ev.chosen_option || "Mitigated"}</p>
                   </div>
-                  <Badge variant="outline" className="text-emerald-600 border-emerald-500/20">
-                    Mitigated
+                  <Badge variant="outline" className="text-emerald-600 border-emerald-300 bg-emerald-50">
+                    <CheckCircle2 className="size-3 mr-1" /> Resolved
                   </Badge>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="text-center py-8 text-xs text-muted-foreground">
-              No historical crises recorded yet. As your bank grows through quarterly simulation, macroeconomic events will appear here.
-            </div>
+            <p className="text-xs text-muted-foreground text-center py-4">No historical crisis incidents recorded yet.</p>
           )}
         </CardContent>
       </Card>

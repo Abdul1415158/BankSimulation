@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { advanceQuarterAction } from "@/app/actions/simulation-actions";
+import { advanceQuarterInStorage } from "@/lib/storage";
 import { formatCurrency, formatPercent } from "@/lib/formatters";
 import {
   Zap,
@@ -51,26 +51,30 @@ export function AdvanceQuarterForm({
     activeCrisis?.options?.[0]?.id || ""
   );
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const res = await advanceQuarterAction(bankId, {
-        retailDepositRate: retailDepositRate / 100,
-        commercialDepositRate: commercialDepositRate / 100,
-        retailLendingRate: retailLendingRate / 100,
-        corporateLendingRate: corporateLendingRate / 100,
-        dividendPayoutRatio: dividendPayoutRatio / 100,
-        selectedCrisisOptionId,
+      const { bank, state } = advanceQuarterInStorage(bankId, {
+        savingsRate: retailDepositRate,
+        personalLoanSpread: retailLendingRate,
+        businessLoanSpread: corporateLendingRate,
+        marketingBudget: 50000,
+        trainingBudget: 25000,
       });
 
-      if (res?.success) {
-        setSuccessResult(res.result);
-        router.refresh();
-      }
-    } catch (err: any) {
-      alert(err.message || "Failed to advance quarter");
+      setSuccessResult({
+        nextYear: bank.current_year,
+        nextQuarter: bank.current_quarter,
+        netProfit: state.net_profit,
+        totalAssets: state.total_assets,
+        capitalAdequacyRatio: state.capital_adequacy_ratio / 100,
+        customerSatisfaction: state.customer_satisfaction,
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to advance quarter";
+      alert(msg);
     } finally {
       setLoading(false);
     }

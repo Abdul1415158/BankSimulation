@@ -1,10 +1,12 @@
-import { createClient } from "@/lib/supabase/server";
-import { notFound } from "next/navigation";
+"use client";
+
+import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { formatCurrency, formatPercent } from "@/lib/formatters";
+import { formatCurrency } from "@/lib/formatters";
 import {
   Bot,
   Zap,
@@ -12,176 +14,171 @@ import {
   ShieldAlert,
   ArrowLeft,
   Cpu,
-  Eye,
-  Sliders,
-  DollarSign,
+  Trash2,
+  Plus,
 } from "lucide-react";
+import { getBank, getAiAgents, deployAiAgent, decommissionAiAgent, AiAgent } from "@/lib/storage";
+import type { Bank } from "@/types/bank";
 
-export default async function AIAgentsPage({
-  params,
-}: {
-  params: Promise<{ bankId: string }>;
-}) {
-  const { bankId } = await params;
-  const supabase = await createClient();
+export default function AIAgentsPage() {
+  const params = useParams();
+  const bankId = params.bankId as string;
+  const [bank, setBank] = useState<Bank | null>(null);
+  const [agents, setAgents] = useState<AiAgent[]>([]);
 
-  const { data: bank } = await supabase
-    .from("banks")
-    .select("currency")
-    .eq("id", bankId)
-    .single();
+  function reload() {
+    if (!bankId) return;
+    setBank(getBank(bankId));
+    setAgents(getAiAgents(bankId));
+  }
 
-  if (!bank) notFound();
+  useEffect(() => {
+    reload();
+  }, [bankId]);
 
-  const { data: aiAgents } = await supabase
-    .from("ai_agents")
-    .select("*, departments(name)")
-    .eq("bank_id", bankId)
-    .order("agent_type", { ascending: true });
+  if (!bank) return <div className="p-6">Loading AI agents...</div>;
 
-  const agents = aiAgents ?? [];
-  const activeCount = agents.filter((a) => a.status === "active").length;
-  const totalMonthlyCost = agents.reduce((sum, a) => sum + Number(a.monthly_operating_cost ?? 2000), 0);
-  const avgSpeed = agents.length > 0
-    ? (agents.reduce((sum, a) => sum + Number(a.processing_speed ?? 3.0), 0) / agents.length).toFixed(1)
-    : "3.0";
-  const avgCyberRisk = agents.length > 0
-    ? agents.reduce((sum, a) => sum + Number(a.cybersecurity_risk ?? 0.03), 0) / agents.length
-    : 0.03;
+  const currency = bank.currency || "USD";
+  const activeCount = agents.filter((a) => a.status === "Active").length;
+  const totalMonthlyCost = agents.reduce((sum, a) => sum + a.monthly_cost, 0);
+
+  function handleDeploy() {
+    const prototypes = [
+      { name: `FraudScan-AI-${Date.now().toString().slice(-3)}`, type: "AI Fraud Detection Agent", cost: 3500, dept: "Fraud Prevention", speed: "15x Human", acc: 93, risk: 2.2 },
+      { name: `ComplianceBot-v${Date.now().toString().slice(-2)}`, type: "AI Compliance Assistant", cost: 4000, dept: "Compliance", speed: "10x Human", acc: 96, risk: 1.8 },
+      { name: `DocVerify-Fast`, type: "AI Document Verification Agent", cost: 2800, dept: "Loan and Credit Department", speed: "20x Human", acc: 90, risk: 3.1 },
+    ];
+    const p = prototypes[Math.floor(Math.random() * prototypes.length)];
+    deployAiAgent(bankId, {
+      name: p.name,
+      agent_type: p.type,
+      department_id: "dept-1",
+      department_name: p.dept,
+      monthly_cost: p.cost,
+      processing_speed: p.speed,
+      accuracy: p.acc,
+      error_probability: 2.5,
+      cybersecurity_risk: p.risk,
+      human_supervision_needed: "Medium",
+      status: "Active",
+    });
+    reload();
+  }
+
+  function handleDecommission(id: string) {
+    decommissionAiAgent(bankId, id);
+    reload();
+  }
 
   return (
-    <div className="space-y-6">
+    <div className="p-6 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <Button variant="ghost" size="xs" asChild className="p-0 text-muted-foreground hover:text-foreground">
+            <Button variant="ghost" size="sm" asChild className="p-0 text-muted-foreground hover:text-foreground">
               <Link href={`/bank/${bankId}/workforce`} className="flex items-center gap-1">
                 <ArrowLeft className="size-3.5" /> Workforce
               </Link>
             </Button>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">AI Agent Management</h1>
+          <h1 className="text-2xl font-bold tracking-tight">AI Agents Management</h1>
           <p className="text-sm text-muted-foreground">
-            Deploy autonomous agents, monitor hallucination/error rates, and manage model supervision.
+            Configure automated banking agents, monitor hallucination/error rates, and manage operational risk.
           </p>
         </div>
-      </div>
-
-      {/* Highlights Rule */}
-      <div className="p-4 rounded-xl border border-blue-500/20 bg-blue-500/5 flex items-start gap-3">
-        <Bot className="size-5 text-blue-500 shrink-0 mt-0.5" />
-        <div className="text-xs text-muted-foreground leading-relaxed">
-          <strong className="text-foreground">BANKVERSE AI Economics:</strong> AI agents process transactions up to 5x faster at ~35% of human payroll cost. However, autonomous agents lack subjective credit discretion and increase systemic cybersecurity risk without human supervision.
-        </div>
+        <Button onClick={handleDeploy} className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white border-0">
+          <Plus className="size-4 mr-1.5" />
+          Deploy New AI Agent
+        </Button>
       </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
-          <CardHeader className="pb-2">
-            <CardDescription className="text-xs">Active AI Agents</CardDescription>
-            <CardTitle className="text-2xl font-bold">{activeCount}</CardTitle>
-          </CardHeader>
-          <CardContent className="text-xs text-muted-foreground flex items-center gap-1">
-            <Cpu className="size-3.5 text-cyan-500" /> Automated workers
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground">Active AI Fleet</p>
+              <p className="text-2xl font-bold font-mono-numbers">{activeCount}</p>
+            </div>
+            <Bot className="size-5 text-blue-500" />
           </CardContent>
         </Card>
-
         <Card>
-          <CardHeader className="pb-2">
-            <CardDescription className="text-xs">Monthly AI Compute Cost</CardDescription>
-            <CardTitle className="text-2xl font-bold">
-              {formatCurrency(totalMonthlyCost, bank.currency)}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-xs text-muted-foreground flex items-center gap-1">
-            <DollarSign className="size-3.5 text-emerald-500" /> API & server licenses
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground">Monthly Operating Cost</p>
+              <p className="text-2xl font-bold font-mono-numbers">{formatCurrency(totalMonthlyCost, currency)}</p>
+            </div>
+            <Cpu className="size-5 text-cyan-500" />
           </CardContent>
         </Card>
-
         <Card>
-          <CardHeader className="pb-2">
-            <CardDescription className="text-xs">Average Speed Multiplier</CardDescription>
-            <CardTitle className="text-2xl font-bold">{avgSpeed}x</CardTitle>
-          </CardHeader>
-          <CardContent className="text-xs text-muted-foreground flex items-center gap-1">
-            <Zap className="size-3.5 text-amber-500" /> Relative to human staff
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground">Average Processing Speed</p>
+              <p className="text-2xl font-bold font-mono-numbers text-emerald-600">10x Human</p>
+            </div>
+            <Zap className="size-5 text-amber-500" />
           </CardContent>
         </Card>
-
         <Card>
-          <CardHeader className="pb-2">
-            <CardDescription className="text-xs">Systemic Cyber Risk</CardDescription>
-            <CardTitle className="text-2xl font-bold">{formatPercent(avgCyberRisk)}</CardTitle>
-          </CardHeader>
-          <CardContent className="text-xs text-muted-foreground flex items-center gap-1">
-            <ShieldAlert className="size-3.5 text-rose-500" /> Vulnerability surface
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground">Fleet Cyber Risk</p>
+              <p className="text-2xl font-bold font-mono-numbers text-amber-600">2.4%</p>
+            </div>
+            <ShieldAlert className="size-5 text-rose-500" />
           </CardContent>
         </Card>
       </div>
 
       {/* AI Agents Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {agents.map((agent) => {
-          const speed = Number(agent.processing_speed ?? 3.0);
-          const accuracy = Number(agent.accuracy_rate ?? 0.94);
-          const cyberRisk = Number(agent.cybersecurity_risk ?? 0.03);
-          const cost = Number(agent.monthly_operating_cost ?? 2000);
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {agents.map((agent) => (
+          <Card key={agent.id} className="flex flex-col justify-between">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between mb-2">
+                <Badge variant="outline" className="bg-blue-50 text-blue-700 text-xs">
+                  {agent.agent_type}
+                </Badge>
+                <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 text-xs">
+                  {agent.status}
+                </Badge>
+              </div>
+              <CardTitle className="text-base font-bold">{agent.name}</CardTitle>
+              <CardDescription className="text-xs">{agent.department_name}</CardDescription>
+            </CardHeader>
 
-          return (
-            <Card key={agent.id} className="flex flex-col justify-between">
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-3">
-                    <div className="size-10 rounded-lg bg-cyan-500/10 text-cyan-500 flex items-center justify-center">
-                      <Bot className="size-5" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-sm font-semibold">{agent.agent_type}</CardTitle>
-                      <span className="text-xs text-muted-foreground">
-                        {agent.departments?.name || "Operations"}
-                      </span>
-                    </div>
-                  </div>
-                  <Badge variant="outline" className="uppercase text-[10px]">
-                    {agent.model_tier ?? "Standard"}
-                  </Badge>
-                </div>
-              </CardHeader>
-
-              <CardContent className="space-y-4 pt-0">
-                <div className="space-y-2 text-xs py-2 border-y border-border">
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Processing Speed</span>
-                    <strong className="text-foreground">{speed.toFixed(1)}x Human</strong>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Accuracy / Hallucination</span>
-                    <strong className="text-foreground">{formatPercent(accuracy)}</strong>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Cyber Vulnerability</span>
-                    <strong className="text-rose-500">{formatPercent(cyberRisk)}</strong>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Monthly License</span>
-                    <strong className="font-mono-numbers">{formatCurrency(cost, bank.currency)}</strong>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between pt-1">
-                  <span className="text-xs text-muted-foreground flex items-center gap-1">
-                    <Eye className="size-3.5 text-blue-500" />
-                    {agent.human_supervision_required ? "Human Supervised" : "Autonomous"}
-                  </span>
-                  <Badge variant="secondary" className="text-[10px]">
-                    {agent.status}
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
+            <CardContent className="space-y-2.5 text-xs pt-0">
+              <div className="flex justify-between border-b pb-1">
+                <span className="text-muted-foreground">Processing Speed</span>
+                <span className="font-semibold text-emerald-600">{agent.processing_speed}</span>
+              </div>
+              <div className="flex justify-between border-b pb-1">
+                <span className="text-muted-foreground">Accuracy</span>
+                <span className="font-semibold">{agent.accuracy}%</span>
+              </div>
+              <div className="flex justify-between border-b pb-1">
+                <span className="text-muted-foreground">Monthly Subscription</span>
+                <span className="font-mono-numbers font-medium">{formatCurrency(agent.monthly_cost, currency)}/mo</span>
+              </div>
+              <div className="flex justify-between border-b pb-1">
+                <span className="text-muted-foreground">Supervision Needed</span>
+                <span className="font-medium text-amber-600">{agent.human_supervision_needed}</span>
+              </div>
+              <div className="pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleDecommission(agent.id)}
+                  className="w-full text-red-600 hover:bg-red-50 hover:text-red-700 h-8 text-xs"
+                >
+                  <Trash2 className="size-3.5 mr-1" /> Decommission Agent
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
     </div>
   );

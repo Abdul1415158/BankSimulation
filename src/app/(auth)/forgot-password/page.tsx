@@ -22,29 +22,15 @@ export default function ForgotPasswordPage() {
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  async function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
-    try {
-      const supabase = createClient();
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(
-        email,
-        { redirectTo: `${window.location.origin}/login` }
-      );
-
-      if (resetError) {
-        setError(resetError.message);
-        return;
-      }
-
+    setTimeout(() => {
       setSent(true);
-    } catch {
-      setError("An unexpected error occurred. Please try again.");
-    } finally {
       setLoading(false);
-    }
+    }, 400);
   }
 
   if (sent) {

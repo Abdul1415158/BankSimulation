@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,7 +25,7 @@ import {
   type CreateBankFormData,
 } from "@/types/bank";
 import { formatCurrency } from "@/lib/formatters";
-import { createBank } from "@/app/actions/bank-actions";
+import { createBankInSlot } from "@/lib/storage";
 import {
   ArrowLeft,
   ArrowRight,
@@ -46,7 +46,7 @@ const STEPS = [
   { label: "Review", icon: CheckCircle },
 ];
 
-export default function CreateBankPage() {
+function CreateBankFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const slotNumber = parseInt(searchParams.get("slot") || "1", 10);
@@ -81,18 +81,15 @@ export default function CreateBankPage() {
     }
   }
 
-  async function handleCreate() {
+  function handleCreate() {
     setLoading(true);
     setError(null);
     try {
-      const result = await createBank(slotNumber, form);
-      if (result.success && result.bankId) {
-        router.push(`/bank/${result.bankId}`);
-      } else {
-        setError(result.error || "Failed to create bank");
-      }
-    } catch {
-      setError("An unexpected error occurred");
+      const bank = createBankInSlot(slotNumber as 1 | 2 | 3, form);
+      router.push(`/bank/${bank.id}`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to create bank";
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -314,5 +311,22 @@ export default function CreateBankPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function CreateBankPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="max-w-3xl mx-auto px-4 py-16 text-center">
+          <div className="animate-pulse space-y-4">
+            <div className="h-8 bg-muted rounded w-48 mx-auto" />
+            <div className="h-64 bg-muted rounded-xl" />
+          </div>
+        </div>
+      }
+    >
+      <CreateBankFormContent />
+    </Suspense>
   );
 }

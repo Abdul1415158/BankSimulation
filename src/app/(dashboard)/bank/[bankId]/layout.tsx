@@ -1,6 +1,8 @@
-import { createClient } from "@/lib/supabase/server";
-import { redirect, notFound } from "next/navigation";
+"use client";
+
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -19,7 +21,8 @@ import {
   ArrowLeft,
   ChevronRight,
 } from "lucide-react";
-import { cn } from "cn";
+import { getBank } from "@/lib/storage";
+import type { Bank } from "@/types/bank";
 
 const sidebarLinks = [
   { label: "Overview", href: "", icon: LayoutDashboard },
@@ -36,26 +39,35 @@ const sidebarLinks = [
   { label: "Settings", href: "/settings", icon: Settings },
 ];
 
-export default async function BankLayout({
+export default function BankLayout({
   children,
-  params,
 }: {
   children: React.ReactNode;
-  params: Promise<{ bankId: string }>;
 }) {
-  const { bankId } = await params;
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const params = useParams();
+  const router = useRouter();
+  const bankId = params.bankId as string;
+  const [bank, setBank] = useState<Bank | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const { data: bank } = await supabase
-    .from("banks")
-    .select("*")
-    .eq("id", bankId)
-    .eq("user_id", user.id)
-    .single();
+  useEffect(() => {
+    if (!bankId) return;
+    const b = getBank(bankId);
+    if (!b) {
+      router.push("/banks");
+      return;
+    }
+    setBank(b);
+    setLoading(false);
+  }, [bankId, router]);
 
-  if (!bank) notFound();
+  if (loading || !bank) {
+    return (
+      <div className="flex h-[calc(100vh-56px)] items-center justify-center">
+        <div className="animate-spin size-8 border-4 border-blue-500 border-t-transparent rounded-full" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-[calc(100vh-56px)]">
@@ -73,7 +85,7 @@ export default async function BankLayout({
             <div className="min-w-0">
               <p className="font-semibold text-white text-sm truncate">{bank.name}</p>
               <p className="text-xs text-white/40">
-                Y{bank.current_year} Q{bank.current_quarter}
+                Y{bank.current_year} Q{bank.current_quarter} · {bank.currency}
               </p>
             </div>
           </div>

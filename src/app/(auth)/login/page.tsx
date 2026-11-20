@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,40 +13,29 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, AlertCircle } from "lucide-react";
+import { setCurrentUser } from "@/lib/storage";
+import { Loader2 } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [email, setEmail] = useState("banker@bankverse.com");
+  const [password, setPassword] = useState("password123");
   const [loading, setLoading] = useState(false);
 
-  async function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setError(null);
     setLoading(true);
 
-    try {
-      const supabase = createClient();
-      const { error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+    const name = email.split("@")[0].replace(/[._]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+    setCurrentUser({
+      id: `usr-${Date.now()}`,
+      email,
+      name: name || "Bank Executive",
+    });
 
-      if (authError) {
-        setError(authError.message);
-        return;
-      }
-
+    setTimeout(() => {
       router.push("/banks");
-      router.refresh();
-    } catch {
-      setError("An unexpected error occurred. Please try again.");
-    } finally {
-      setLoading(false);
-    }
+    }, 300);
   }
 
   return (
@@ -55,18 +43,11 @@ export default function LoginPage() {
       <CardHeader className="px-0">
         <CardTitle className="text-2xl font-bold">Welcome back</CardTitle>
         <CardDescription>
-          Log in to your BANKVERSE account to continue managing your banks.
+          Log in to your BANKVERSE account to continue managing your 3 bank slots.
         </CardDescription>
       </CardHeader>
       <CardContent className="px-0">
         <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
-            <Alert variant="destructive">
-              <AlertCircle className="size-4" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input
@@ -97,7 +78,7 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              minLength={8}
+              minLength={6}
               autoComplete="current-password"
             />
           </div>
@@ -108,7 +89,7 @@ export default function LoginPage() {
             disabled={loading}
           >
             {loading && <Loader2 className="size-4 animate-spin mr-2" />}
-            Log In
+            Log In & Open Bankverse
           </Button>
 
           <p className="text-sm text-center text-muted-foreground">

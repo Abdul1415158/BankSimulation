@@ -1,8 +1,10 @@
-import { createClient } from "@/lib/supabase/server";
-import { notFound } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+"use client";
+
+import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { formatCurrency, formatPercent, formatCompactNumber, getChangeColor } from "@/lib/formatters";
+import { formatCurrency, formatPercent, formatCompactNumber } from "@/lib/formatters";
 import {
   DollarSign,
   TrendingUp,
@@ -17,6 +19,8 @@ import {
   Landmark,
   BarChart3,
 } from "lucide-react";
+import { getBank, getSimulationState, getEconomicCondition, SimulationState, EconomicCondition } from "@/lib/storage";
+import type { Bank } from "@/types/bank";
 
 function KPICard({
   title,
@@ -39,9 +43,15 @@ function KPICard({
             <p className="text-xs text-muted-foreground font-medium">{title}</p>
             <p className="text-xl font-bold font-mono-numbers">{value}</p>
             {subtitle && (
-              <p className={`text-xs font-medium ${
-                trend === "up" ? "text-emerald-600" : trend === "down" ? "text-red-500" : "text-muted-foreground"
-              }`}>
+              <p
+                className={`text-xs font-medium ${
+                  trend === "up"
+                    ? "text-emerald-600"
+                    : trend === "down"
+                    ? "text-red-500"
+                    : "text-muted-foreground"
+                }`}
+              >
                 {subtitle}
               </p>
             )}
@@ -55,32 +65,60 @@ function KPICard({
   );
 }
 
-export default async function BankOverviewPage({
-  params,
-}: {
-  params: Promise<{ bankId: string }>;
-}) {
-  const { bankId } = await params;
-  const supabase = await createClient();
+export default function BankOverviewPage() {
+  const params = useParams();
+  const bankId = params.bankId as string;
 
-  const [{ data: bank }, { data: state }, { data: economy }] = await Promise.all([
-    supabase.from("banks").select("*").eq("id", bankId).single(),
-    supabase.from("simulation_states").select("*").eq("bank_id", bankId).single(),
-    supabase.from("economic_conditions").select("*").eq("bank_id", bankId).order("year", { ascending: false }).order("quarter", { ascending: false }).limit(1).single(),
-  ]);
+  const [bank, setBank] = useState<Bank | null>(null);
+  const [state, setState] = useState<SimulationState | null>(null);
+  const [economy, setEconomy] = useState<EconomicCondition | null>(null);
 
-  if (!bank || !state) notFound();
+  useEffect(() => {
+    if (!bankId) return;
+    const b = getBank(bankId);
+    const s = getSimulationState(bankId);
+    const e = getEconomicCondition(bankId);
+    setBank(b);
+    setState(s);
+    setEconomy(e);
+  }, [bankId]);
+
+  if (!bank || !state) {
+    return (
+      <div className="p-6">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-muted rounded w-48" />
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="h-24 bg-muted rounded-xl" />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const currency = bank.currency || "USD";
+  const overallScore = Math.min(100, Math.round(state.customer_satisfaction * 0.4 + (state.capital_adequacy_ratio / 30) * 30 + (state.net_profit > 0 ? 30 : 10)));
 
   return (
     <div className="p-6 space-y-6">
       {/* Page header */}
-      <div>
-        <h1 className="text-2xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground text-sm">
-          {bank.name} · Year {bank.current_year}, Quarter {bank.current_quarter}
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">Executive Dashboard</h1>
+          <p className="text-muted-foreground text-sm">
+            {bank.name} · Year {bank.current_year}, Quarter {bank.current_quarter} ({currency})
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="text-xs px-2.5 py-1">
+            Status: <span className="font-semibold text-emerald-600 ml-1">{bank.status.toUpperCase()}</span>
+          </Badge>
+          <Badge variant="secondary" className="text-xs px-2.5 py-1 bg-blue-50 text-blue-700">
+            Strategy: {bank.initial_strategy.replace("_", " ")}
+          </Badge>
+        </div>
       </div>
 
       {/* Financial KPIs */}
@@ -101,21 +139,21 @@ export default async function BankOverviewPage({
       {/* Ratios & Operational */}
       <div className="grid lg:grid-cols-2 gap-6">
         <div>
-          <h2 className="text-sm font-medium text-muted-foreground mb-3">Key Ratios</h2>
+          <h2 className="text-sm font-medium text-muted-foreground mb-3">Prudential & Performance Ratios</h2>
           <Card>
             <CardContent className="p-4 space-y-3">
               {[
-                { label: "Liquidity Ratio", value: formatPercent(state.liquidity_ratio * 100), good: state.liquidity_ratio > 0.2 },
-                { label: "Capital Adequacy", value: formatPercent(state.capital_adequacy_ratio * 100), good: state.capital_adequacy_ratio > 0.08 },
-                { label: "NPL Ratio", value: formatPercent(state.npl_ratio * 100), good: state.npl_ratio < 0.05 },
-                { label: "Net Interest Margin", value: formatPercent(state.net_interest_margin * 100), good: state.net_interest_margin > 0.02 },
-                { label: "Return on Assets", value: formatPercent(state.return_on_assets * 100), good: state.return_on_assets > 0 },
-                { label: "Return on Equity", value: formatPercent(state.return_on_equity * 100), good: state.return_on_equity > 0 },
-                { label: "Cost to Income", value: formatPercent(state.cost_to_income_ratio * 100), good: state.cost_to_income_ratio < 0.6 },
+                { label: "Liquidity Ratio", value: `${state.liquidity_ratio}%`, good: state.liquidity_ratio > 20 },
+                { label: "Capital Adequacy Ratio (CAR)", value: `${state.capital_adequacy_ratio}%`, good: state.capital_adequacy_ratio > 10.5 },
+                { label: "Non-Performing Loans (NPL)", value: `${state.npl_ratio}%`, good: state.npl_ratio < 4.0 },
+                { label: "Return on Equity (ROE)", value: `${state.roe}%`, good: state.roe > 6 },
+                { label: "Return on Assets (ROA)", value: `${state.roa}%`, good: state.roa > 1 },
               ].map((r) => (
-                <div key={r.label} className="flex items-center justify-between text-sm">
+                <div key={r.label} className="flex items-center justify-between text-sm py-1 border-b last:border-0 border-border/50">
                   <span className="text-muted-foreground">{r.label}</span>
-                  <span className={`font-mono-numbers font-medium ${r.good ? "text-emerald-600" : "text-amber-600"}`}>{r.value}</span>
+                  <span className={`font-mono-numbers font-medium ${r.good ? "text-emerald-600" : "text-amber-600"}`}>
+                    {r.value}
+                  </span>
                 </div>
               ))}
             </CardContent>
@@ -125,31 +163,33 @@ export default async function BankOverviewPage({
         <div>
           <h2 className="text-sm font-medium text-muted-foreground mb-3">Operational Indicators</h2>
           <div className="grid grid-cols-2 gap-4">
-            <KPICard title="Employees" value={String(state.total_employees)} icon={Users} />
-            <KPICard title="AI Agents" value={String(state.total_ai_agents)} icon={Bot} />
-            <KPICard title="Customers" value={formatCompactNumber(state.total_customers)} icon={UserCircle} />
-            <KPICard title="Satisfaction" value={formatPercent(state.customer_satisfaction, 0)} icon={ShieldCheck} trend={state.customer_satisfaction >= 50 ? "up" : "down"} />
+            <KPICard title="Human Staff" value={String(state.total_employees)} icon={Users} />
+            <KPICard title="Active AI Agents" value={String(state.total_ai_agents)} icon={Bot} />
+            <KPICard title="Fraud Incidents" value={String(state.fraud_incidents)} icon={ShieldCheck} trend="up" />
+            <KPICard title="Customer Satisfaction" value={`${state.customer_satisfaction}%`} icon={UserCircle} trend={state.customer_satisfaction >= 75 ? "up" : "down"} />
           </div>
 
           {economy && (
             <div className="mt-4">
-              <h2 className="text-sm font-medium text-muted-foreground mb-3">Economic Conditions</h2>
+              <h2 className="text-sm font-medium text-muted-foreground mb-3">Macroeconomic Environment</h2>
               <Card>
                 <CardContent className="p-4 space-y-2">
-                  {[
-                    { label: "GDP Growth", value: formatPercent(economy.gdp_growth) },
-                    { label: "Inflation", value: formatPercent(economy.inflation_rate) },
-                    { label: "Central Bank Rate", value: formatPercent(economy.central_bank_rate) },
-                    { label: "Unemployment", value: formatPercent(economy.unemployment_rate) },
-                  ].map((r) => (
-                    <div key={r.label} className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">{r.label}</span>
-                      <span className="font-mono-numbers font-medium">{r.value}</span>
-                    </div>
-                  ))}
-                  {economy.recession_flag && (
-                    <Badge variant="destructive" className="mt-1">Recession Active</Badge>
-                  )}
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Economic Phase</span>
+                    <Badge variant="outline" className="bg-emerald-50 text-emerald-700">{economy.phase}</Badge>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Central Bank Rate</span>
+                    <span className="font-mono-numbers font-medium">{economy.central_bank_rate}%</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">GDP Growth Rate</span>
+                    <span className="font-mono-numbers font-medium">{economy.gdp_growth}%</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Inflation</span>
+                    <span className="font-mono-numbers font-medium">{economy.inflation_rate}%</span>
+                  </div>
                 </CardContent>
               </Card>
             </div>
@@ -158,14 +198,23 @@ export default async function BankOverviewPage({
       </div>
 
       {/* Bank score */}
-      <Card>
-        <CardContent className="p-4 flex items-center justify-between">
+      <Card className="bg-gradient-to-r from-blue-900 to-slate-900 text-white border-0">
+        <CardContent className="p-5 flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-muted-foreground">Overall Bank Performance Score</p>
-            <p className="text-3xl font-bold font-mono-numbers">{state.overall_score}<span className="text-lg text-muted-foreground">/100</span></p>
+            <p className="text-xs uppercase tracking-wider text-blue-300 font-semibold">Regulatory & Management Score</p>
+            <p className="text-3xl font-bold font-mono-numbers mt-1">
+              {overallScore}
+              <span className="text-lg text-white/50"> / 100</span>
+            </p>
+            <p className="text-xs text-white/70 mt-1">
+              Bank health is stable. Capital adequacy and liquidity meet regulatory standards.
+            </p>
           </div>
-          <div className="size-16 rounded-full border-4 border-blue-500 flex items-center justify-center">
-            <span className="text-lg font-bold text-blue-600">{state.overall_score >= 70 ? "A" : state.overall_score >= 50 ? "B" : state.overall_score >= 30 ? "C" : "D"}</span>
+          <div className="size-16 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex flex-col items-center justify-center">
+            <span className="text-xl font-bold text-cyan-300">
+              {overallScore >= 80 ? "A+" : overallScore >= 70 ? "A" : overallScore >= 55 ? "B" : "C"}
+            </span>
+            <span className="text-[10px] text-white/60">Rating</span>
           </div>
         </CardContent>
       </Card>

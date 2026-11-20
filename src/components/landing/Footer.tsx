@@ -29,8 +29,14 @@ const links = {
 
 export function Footer() {
   return (
-    <footer className="bg-[#0a0e1a] text-white/70">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16">
+    <footer className="relative bg-[#060b17] text-white/70 overflow-hidden border-t border-white/10">
+      <div 
+        className="absolute inset-0 bg-cover bg-center opacity-10 pointer-events-none"
+        style={{
+          backgroundImage: `url('https://images.unsplash.com/photo-1541888946425-d0fbb186f5f8?auto=format&fit=crop&w=2000&q=80')`,
+        }}
+      />
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-16">
         <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-8">
           {/* Brand */}
           <div className="lg:col-span-1">

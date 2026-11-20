@@ -1,174 +1,116 @@
-import { createClient } from "@/lib/supabase/server";
-import { notFound } from "next/navigation";
+"use client";
+
+import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { formatCurrency, formatPercent } from "@/lib/formatters";
+import { formatPercent } from "@/lib/formatters";
 import {
   ShieldAlert,
   ShieldCheck,
   Activity,
   AlertTriangle,
   Scale,
-  Zap,
 } from "lucide-react";
+import { getBank, getSimulationState, SimulationState } from "@/lib/storage";
+import type { Bank } from "@/types/bank";
 
-export default async function RiskManagementPage({
-  params,
-}: {
-  params: Promise<{ bankId: string }>;
-}) {
-  const { bankId } = await params;
-  const supabase = await createClient();
+export default function RiskManagementPage() {
+  const params = useParams();
+  const bankId = params.bankId as string;
+  const [bank, setBank] = useState<Bank | null>(null);
+  const [state, setState] = useState<SimulationState | null>(null);
 
-  const { data: bank } = await supabase
-    .from("banks")
-    .select("currency")
-    .eq("id", bankId)
-    .single();
+  useEffect(() => {
+    if (!bankId) return;
+    setBank(getBank(bankId));
+    setState(getSimulationState(bankId));
+  }, [bankId]);
 
-  if (!bank) notFound();
+  if (!bank || !state) return <div className="p-6">Loading risk management...</div>;
 
-  const { data: simState } = await supabase
-    .from("simulation_states")
-    .select("*")
-    .eq("bank_id", bankId)
-    .single();
-
-  const car = Number(simState?.capital_adequacy_ratio ?? 0.145);
-  const totalEquity = Number(simState?.total_equity ?? 15000000);
-  const totalLoans = Number(simState?.total_loans ?? 40000000);
-  const nplRatio = Number(simState?.non_performing_loan_ratio ?? 0.024);
-  const rwa = totalLoans * 0.75 + 5000000 * 0.20; // Risk weighted assets
-  const minRequiredCar = 0.105; // 10.5% Basel III with buffers
+  const car = state.capital_adequacy_ratio;
+  const nplRatio = state.npl_ratio;
+  const isCarCompliant = car >= 10.5;
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Risk Management & Capital Adequacy</h1>
-          <p className="text-sm text-muted-foreground">
-            Basel III regulatory compliance, Risk-Weighted Asset (RWA) modeling, and stress testing.
-          </p>
-        </div>
+    <div className="p-6 space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Risk Management & Basel III Compliance</h1>
+        <p className="text-sm text-muted-foreground">
+          Monitor Capital Adequacy Ratios (CAR), Non-Performing Loans (NPL), and credit stress indicators.
+        </p>
       </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
-          <CardHeader className="pb-2">
-            <CardDescription className="text-xs">Capital Adequacy Ratio (CAR)</CardDescription>
-            <CardTitle className={`text-2xl font-bold font-mono-numbers ${car >= minRequiredCar ? "text-emerald-600" : "text-destructive"}`}>
-              {formatPercent(car)}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-xs text-muted-foreground flex items-center gap-1">
-            <Scale className="size-3.5 text-blue-500" /> Basel III Min: {formatPercent(minRequiredCar)}
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground">Capital Adequacy Ratio</p>
+              <p className={`text-2xl font-bold font-mono-numbers ${isCarCompliant ? "text-emerald-600" : "text-red-500"}`}>
+                {car}%
+              </p>
+            </div>
+            <ShieldCheck className="size-5 text-emerald-500" />
           </CardContent>
         </Card>
-
         <Card>
-          <CardHeader className="pb-2">
-            <CardDescription className="text-xs">Tier 1 Core Equity</CardDescription>
-            <CardTitle className="text-2xl font-bold font-mono-numbers">
-              {formatCurrency(totalEquity, bank.currency)}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-xs text-muted-foreground flex items-center gap-1">
-            <ShieldCheck className="size-3.5 text-emerald-500" /> Loss-absorbing capital
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground">Regulatory CAR Threshold</p>
+              <p className="text-2xl font-bold font-mono-numbers">10.5%</p>
+            </div>
+            <Scale className="size-5 text-blue-500" />
           </CardContent>
         </Card>
-
         <Card>
-          <CardHeader className="pb-2">
-            <CardDescription className="text-xs">Risk-Weighted Assets (RWA)</CardDescription>
-            <CardTitle className="text-2xl font-bold font-mono-numbers">
-              {formatCurrency(rwa, bank.currency)}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-xs text-muted-foreground flex items-center gap-1">
-            <Activity className="size-3.5 text-cyan-500" /> Standardized Approach
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground">NPL Default Rate</p>
+              <p className="text-2xl font-bold font-mono-numbers text-amber-600">{nplRatio}%</p>
+            </div>
+            <AlertTriangle className="size-5 text-amber-500" />
           </CardContent>
         </Card>
-
         <Card>
-          <CardHeader className="pb-2">
-            <CardDescription className="text-xs">Credit Quality (NPL)</CardDescription>
-            <CardTitle className="text-2xl font-bold font-mono-numbers">
-              {formatPercent(nplRatio)}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-xs text-muted-foreground flex items-center gap-1">
-            <AlertTriangle className="size-3.5 text-amber-500" /> Delinquency threshold: 5.0%
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground">Value at Risk (99%)</p>
+              <p className="text-2xl font-bold font-mono-numbers text-rose-600">1.8%</p>
+            </div>
+            <ShieldAlert className="size-5 text-rose-500" />
           </CardContent>
         </Card>
       </div>
 
-      {/* Basel III Accord Details */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base font-semibold">Basel III Regulatory Buffers</CardTitle>
-            <CardDescription className="text-xs">
-              Breakdown of minimum statutory capital and supervisory buffers.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between py-2 border-b border-border">
-              <span className="text-sm text-muted-foreground">Pillar 1 Minimum Capital</span>
-              <span className="font-semibold">8.00%</span>
-            </div>
-            <div className="flex items-center justify-between py-2 border-b border-border">
-              <span className="text-sm text-muted-foreground">Capital Conservation Buffer (CCB)</span>
-              <span className="font-semibold">2.50%</span>
-            </div>
-            <div className="flex items-center justify-between py-2 border-b border-border">
-              <span className="text-sm text-muted-foreground">Current Buffer Surplus</span>
-              <span className="font-semibold font-mono-numbers text-emerald-600">
-                +{formatPercent(Math.max(0, car - minRequiredCar))}
-              </span>
-            </div>
-            <div className="flex items-center justify-between py-2">
-              <span className="text-sm text-muted-foreground">Supervisory Stance</span>
-              <Badge variant="outline" className="text-emerald-600 bg-emerald-500/10">
-                Well Capitalized
-              </Badge>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base font-semibold">Macroeconomic Stress Test Simulator</CardTitle>
-            <CardDescription className="text-xs">
-              Simulated capital erosion under severe market shock scenarios.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between py-2 border-b border-border">
+      {/* Stress Test Scenarios */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base font-bold">Simulated Stress Testing</CardTitle>
+          <CardDescription className="text-xs">Projected impact of severe economic shocks on capital reserves.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {[
+            { scenario: "Severe Economic Recession (+4% Unemployment)", impact: "-2.4% Capital", carProjected: `${(car - 2.4).toFixed(1)}%`, pass: car - 2.4 >= 10.5 },
+            { scenario: "Real Estate Market Shock (-20% Collateral Values)", impact: "-3.1% Capital", carProjected: `${(car - 3.1).toFixed(1)}%`, pass: car - 3.1 >= 10.5 },
+            { scenario: "Cyberattack & Mass Deposit Outflow (15% Run)", impact: "-4.5% Capital", carProjected: `${(car - 4.5).toFixed(1)}%`, pass: car - 4.5 >= 10.5 },
+          ].map((st) => (
+            <div key={st.scenario} className="flex items-center justify-between p-3.5 rounded-lg border border-border bg-muted/20">
               <div>
-                <p className="text-sm font-medium">Severe Recession (-4% GDP)</p>
-                <p className="text-xs text-muted-foreground">Unemployment jumps to 9.5%, NPLs spike to 6.8%</p>
+                <p className="font-semibold text-sm">{st.scenario}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Estimated Shock: {st.impact}</p>
               </div>
-              <Badge variant="destructive">CAR: {formatPercent(car - 0.035)}</Badge>
-            </div>
-            <div className="flex items-center justify-between py-2 border-b border-border">
-              <div>
-                <p className="text-sm font-medium">Liquidity Freeze (-20% Deposits)</p>
-                <p className="text-xs text-muted-foreground">Emergency bond fire-sales erode Tier 1 equity</p>
+              <div className="text-right">
+                <p className="font-mono-numbers font-bold text-sm">Post-Shock CAR: {st.carProjected}</p>
+                <Badge variant={st.pass ? "secondary" : "destructive"} className="text-[10px] mt-1">
+                  {st.pass ? "PASSED BUFFER" : "CAPITAL BREACH"}
+                </Badge>
               </div>
-              <Badge variant="outline" className="text-amber-500 border-amber-500/30">LCR: 112%</Badge>
             </div>
-            <div className="flex items-center justify-between py-2">
-              <div>
-                <p className="text-sm font-medium">Critical Cyberattack</p>
-                <p className="text-xs text-muted-foreground">Operational outage and regulatory restitution</p>
-              </div>
-              <Badge variant="outline">CAR: {formatPercent(car - 0.012)}</Badge>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+          ))}
+        </CardContent>
+      </Card>
     </div>
   );
 }

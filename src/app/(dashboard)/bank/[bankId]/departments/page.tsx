@@ -1,22 +1,23 @@
-import { createClient } from "@/lib/supabase/server";
-import { notFound } from "next/navigation";
+"use client";
+
+import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { formatCurrency, formatPercent } from "@/lib/formatters";
 import {
   Building2,
   Users,
   Bot,
   TrendingUp,
-  AlertTriangle,
-  CheckCircle2,
   Cpu,
 } from "lucide-react";
+import { getBank, getDepartments, Department } from "@/lib/storage";
+import type { Bank } from "@/types/bank";
 
 const DEPARTMENT_METADATA: Record<string, { desc: string; iconBg: string }> = {
   "Customer Service": { desc: "Frontline customer support, inquiries, and dispute resolution.", iconBg: "bg-blue-500/10 text-blue-500" },
-  "Loan and Credit": { desc: "Credit evaluation, loan underwriting, and mortgage processing.", iconBg: "bg-emerald-500/10 text-emerald-500" },
+  "Loan and Credit Department": { desc: "Credit evaluation, loan underwriting, and mortgage processing.", iconBg: "bg-emerald-500/10 text-emerald-500" },
   "Cash Operations": { desc: "Vault management, ATM networks, and teller operations.", iconBg: "bg-amber-500/10 text-amber-500" },
   "Risk Management": { desc: "Capital adequacy monitoring, stress tests, and credit risk modeling.", iconBg: "bg-purple-500/10 text-purple-500" },
   "Fraud Prevention": { desc: "Transaction anomaly detection, AML compliance, and anti-theft.", iconBg: "bg-red-500/10 text-red-500" },
@@ -27,121 +28,73 @@ const DEPARTMENT_METADATA: Record<string, { desc: string; iconBg: string }> = {
   "IT and Cybersecurity": { desc: "Server infrastructure, database resilience, and cyber defenses.", iconBg: "bg-slate-500/10 text-slate-500" },
 };
 
-export default async function DepartmentsPage({
-  params,
-}: {
-  params: Promise<{ bankId: string }>;
-}) {
-  const { bankId } = await params;
-  const supabase = await createClient();
+export default function DepartmentsPage() {
+  const params = useParams();
+  const bankId = params.bankId as string;
+  const [bank, setBank] = useState<Bank | null>(null);
+  const [departments, setDepartments] = useState<Department[]>([]);
 
-  const { data: bank } = await supabase
-    .from("banks")
-    .select("currency")
-    .eq("id", bankId)
-    .single();
+  useEffect(() => {
+    if (!bankId) return;
+    setBank(getBank(bankId));
+    setDepartments(getDepartments(bankId));
+  }, [bankId]);
 
-  if (!bank) notFound();
+  if (!bank) return <div className="p-6">Loading departments...</div>;
 
-  const { data: departments } = await supabase
-    .from("departments")
-    .select("*")
-    .eq("bank_id", bankId)
-    .order("name", { ascending: true });
-
-  const { data: employees } = await supabase
-    .from("employees")
-    .select("department_id, status")
-    .eq("bank_id", bankId);
-
-  const { data: aiAgents } = await supabase
-    .from("ai_agents")
-    .select("department_id, status")
-    .eq("bank_id", bankId);
-
-  // Group workforce counts
-  const depts = (departments ?? []).map((d) => {
-    const dHumans = (employees ?? []).filter((e) => e.department_id === d.id && e.status === "active").length;
-    const dAi = (aiAgents ?? []).filter((a) => a.department_id === d.id && a.status === "active").length;
-    return {
-      ...d,
-      humanCount: dHumans,
-      aiCount: dAi,
-    };
-  });
+  const currency = bank.currency || "USD";
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Banking Departments</h1>
-          <p className="text-sm text-muted-foreground">
-            Manage operations, staff allocation, and AI automation across all 10 functional divisions.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="px-3 py-1 text-xs">
-            {depts.length} Active Departments
-          </Badge>
-        </div>
+    <div className="p-6 space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold">Banking Departments</h1>
+        <p className="text-muted-foreground text-sm">
+          Operational structure, headcount, productivity, and budgets across all 10 banking divisions.
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {depts.map((d) => {
-          const meta = DEPARTMENT_METADATA[d.name] || {
-            desc: "Operational banking division.",
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {departments.map((dept) => {
+          const meta = DEPARTMENT_METADATA[dept.name] || {
+            desc: "Operational banking unit.",
             iconBg: "bg-blue-500/10 text-blue-500",
           };
 
-          const performanceScore = Number(d.performance_score ?? 85);
-          const errorRate = Number(d.error_rate ?? 0.02);
-          const quarterlyBudget = Number(d.monthly_budget ?? 45000) * 3;
-
           return (
-            <Card key={d.id} className="flex flex-col justify-between hover:shadow-md transition-shadow">
+            <Card key={dept.id} className="relative overflow-hidden flex flex-col justify-between">
               <CardHeader className="pb-3">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-3">
-                    <div className={`size-10 rounded-lg flex items-center justify-center ${meta.iconBg}`}>
-                      <Building2 className="size-5" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-base font-semibold">{d.name}</CardTitle>
-                      <span className="text-xs text-muted-foreground">Manager: {d.manager_name || "Assigned"}</span>
-                    </div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className={`size-10 rounded-lg flex items-center justify-center ${meta.iconBg}`}>
+                    <Building2 className="size-5" />
                   </div>
-                  <Badge variant={performanceScore >= 80 ? "default" : "secondary"}>
-                    {performanceScore}% Score
+                  <Badge variant="outline" className="text-xs">
+                    Score: <span className="font-semibold text-emerald-600 ml-1">{dept.performance_score}/100</span>
                   </Badge>
                 </div>
-                <CardDescription className="text-xs mt-2 line-clamp-2">
-                  {meta.desc}
-                </CardDescription>
+                <CardTitle className="text-base font-bold">{dept.name}</CardTitle>
+                <CardDescription className="text-xs line-clamp-2">{meta.desc}</CardDescription>
               </CardHeader>
 
-              <CardContent className="space-y-4 pt-0">
-                <div className="grid grid-cols-2 gap-2 text-xs py-2 border-y border-border">
-                  <div className="flex items-center gap-1.5 text-muted-foreground">
-                    <Users className="size-3.5 text-blue-500" />
-                    <span>Staff: <strong className="text-foreground">{d.humanCount}</strong></span>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-muted-foreground">
-                    <Bot className="size-3.5 text-cyan-500" />
-                    <span>AI Agents: <strong className="text-foreground">{d.aiCount}</strong></span>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-muted-foreground">
-                    <TrendingUp className="size-3.5 text-emerald-500" />
-                    <span>Budget: <strong className="text-foreground">{formatCurrency(quarterlyBudget, bank.currency)}</strong></span>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-muted-foreground">
-                    <AlertTriangle className="size-3.5 text-amber-500" />
-                    <span>Error Rate: <strong className="text-foreground">{formatPercent(errorRate)}</strong></span>
-                  </div>
+              <CardContent className="space-y-3 text-xs pt-0">
+                <div className="flex items-center justify-between text-muted-foreground py-1 border-b border-border/50">
+                  <span>Manager</span>
+                  <span className="font-medium text-foreground">{dept.manager_name}</span>
                 </div>
-
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>Workload Capacity</span>
-                  <span className="font-medium text-foreground">{(d.humanCount * 1.0 + d.aiCount * 2.5).toFixed(1)}x Baseline</span>
+                <div className="flex items-center justify-between text-muted-foreground py-1 border-b border-border/50">
+                  <span className="flex items-center gap-1.5"><Users className="size-3.5" /> Human Staff</span>
+                  <span className="font-semibold text-foreground">{dept.employee_count}</span>
+                </div>
+                <div className="flex items-center justify-between text-muted-foreground py-1 border-b border-border/50">
+                  <span className="flex items-center gap-1.5"><Bot className="size-3.5" /> AI Agents</span>
+                  <span className="font-semibold text-blue-600">{dept.ai_agent_count}</span>
+                </div>
+                <div className="flex items-center justify-between text-muted-foreground py-1 border-b border-border/50">
+                  <span>Monthly Budget</span>
+                  <span className="font-mono-numbers font-medium text-foreground">{formatCurrency(dept.budget_monthly, currency)}</span>
+                </div>
+                <div className="flex items-center justify-between text-muted-foreground py-1">
+                  <span>Productivity / Error</span>
+                  <span className="font-medium text-emerald-600">{dept.productivity}% / {dept.error_rate}%</span>
                 </div>
               </CardContent>
             </Card>

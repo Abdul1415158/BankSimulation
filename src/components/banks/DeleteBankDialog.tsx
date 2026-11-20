@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { deleteBank } from "@/app/actions/bank-actions";
+import { deleteBank } from "@/lib/storage";
 import { Loader2, AlertTriangle } from "lucide-react";
 
 interface DeleteBankDialogProps {
@@ -21,6 +21,7 @@ interface DeleteBankDialogProps {
   onOpenChange: (open: boolean) => void;
   bankId: string;
   bankName: string;
+  onDeleted?: () => void;
 }
 
 export function DeleteBankDialog({
@@ -28,6 +29,7 @@ export function DeleteBankDialog({
   onOpenChange,
   bankId,
   bankName,
+  onDeleted,
 }: DeleteBankDialogProps) {
   const router = useRouter();
   const [confirmName, setConfirmName] = useState("");
@@ -42,14 +44,14 @@ export function DeleteBankDialog({
     setError(null);
 
     try {
-      const result = await deleteBank(bankId);
-      if (!result.success) {
-        setError(result.error || "Failed to delete bank.");
-        return;
-      }
+      deleteBank(bankId);
       onOpenChange(false);
       setConfirmName("");
-      router.refresh();
+      if (onDeleted) {
+        onDeleted();
+      } else {
+        router.refresh();
+      }
     } catch {
       setError("An unexpected error occurred.");
     } finally {
@@ -73,7 +75,7 @@ export function DeleteBankDialog({
             This action cannot be undone. All simulation data, employees,
             customers, loans, and reports for{" "}
             <strong className="text-foreground">{bankName}</strong> will be
-            permanently deleted.
+            permanently deleted from your bank slots.
           </AlertDialogDescription>
         </AlertDialogHeader>
 

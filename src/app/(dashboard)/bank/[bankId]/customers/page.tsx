@@ -1,57 +1,54 @@
-import { createClient } from "@/lib/supabase/server";
-import { notFound } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+"use client";
+
+import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { formatCurrency, formatPercent } from "@/lib/formatters";
+import { Input } from "@/components/ui/input";
+import { formatCurrency } from "@/lib/formatters";
 import {
   UserCircle,
   Users,
-  Briefcase,
-  Building,
-  Heart,
-  TrendingUp,
   Search,
+  Plus,
+  ShieldCheck,
 } from "lucide-react";
+import { getBank, getCustomers, Customer } from "@/lib/storage";
+import type { Bank } from "@/types/bank";
 
-export default async function CustomersPage({
-  params,
-}: {
-  params: Promise<{ bankId: string }>;
-}) {
-  const { bankId } = await params;
-  const supabase = await createClient();
+export default function CustomersPage() {
+  const params = useParams();
+  const bankId = params.bankId as string;
+  const [bank, setBank] = useState<Bank | null>(null);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [search, setSearch] = useState("");
 
-  const { data: bank } = await supabase
-    .from("banks")
-    .select("currency")
-    .eq("id", bankId)
-    .single();
+  useEffect(() => {
+    if (!bankId) return;
+    setBank(getBank(bankId));
+    setCustomers(getCustomers(bankId));
+  }, [bankId]);
 
-  if (!bank) notFound();
+  if (!bank) return <div className="p-6">Loading customer accounts...</div>;
 
-  const { data: simState } = await supabase
-    .from("simulation_states")
-    .select("*")
-    .eq("bank_id", bankId)
-    .single();
+  const currency = bank.currency || "USD";
+  const filtered = customers.filter(
+    (c) =>
+      c.name.toLowerCase().includes(search.toLowerCase()) ||
+      c.category.toLowerCase().includes(search.toLowerCase()) ||
+      c.account_type.toLowerCase().includes(search.toLowerCase())
+  );
 
-  const { data: customers } = await supabase
-    .from("customers")
-    .select("*")
-    .eq("bank_id", bankId)
-    .limit(25);
-
-  const customerList = customers ?? [];
-  const satisfaction = Number(simState?.customer_satisfaction_score ?? 78);
+  const totalDeposits = customers.reduce((sum, c) => sum + c.deposit_balance, 0);
 
   return (
-    <div className="space-y-6">
+    <div className="p-6 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Customer Database</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Customer Accounts & CRM</h1>
           <p className="text-sm text-muted-foreground">
-            Monitor client relationships, credit ratings, satisfaction, and deposit retention.
+            Monitor client accounts, credit risk profiles, deposit balances, and satisfaction metrics.
           </p>
         </div>
       </div>
@@ -59,125 +56,106 @@ export default async function CustomersPage({
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
-          <CardHeader className="pb-2">
-            <CardDescription className="text-xs">Active Customer Accounts</CardDescription>
-            <CardTitle className="text-2xl font-bold">1,480</CardTitle>
-          </CardHeader>
-          <CardContent className="text-xs text-muted-foreground flex items-center gap-1">
-            <UserCircle className="size-3.5 text-blue-500" /> Retail & commercial clients
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground">Total Accounts</p>
+              <p className="text-2xl font-bold font-mono-numbers">{customers.length}</p>
+            </div>
+            <Users className="size-5 text-blue-500" />
           </CardContent>
         </Card>
-
         <Card>
-          <CardHeader className="pb-2">
-            <CardDescription className="text-xs">Customer Satisfaction</CardDescription>
-            <CardTitle className="text-2xl font-bold font-mono-numbers text-emerald-600">
-              {satisfaction}%
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-xs text-muted-foreground flex items-center gap-1">
-            <Heart className="size-3.5 text-rose-500" /> CSAT benchmark: 75%
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground">Portfolio Deposits</p>
+              <p className="text-2xl font-bold font-mono-numbers">{formatCurrency(totalDeposits, currency, true)}</p>
+            </div>
+            <UserCircle className="size-5 text-emerald-500" />
           </CardContent>
         </Card>
-
         <Card>
-          <CardHeader className="pb-2">
-            <CardDescription className="text-xs">Average Account Balance</CardDescription>
-            <CardTitle className="text-2xl font-bold font-mono-numbers">
-              {formatCurrency(30400, bank.currency)}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-xs text-muted-foreground flex items-center gap-1">
-            <TrendingUp className="size-3.5 text-cyan-500" /> Blended deposit depth
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground">Avg Credit Score</p>
+              <p className="text-2xl font-bold font-mono-numbers text-cyan-600">748</p>
+            </div>
+            <ShieldCheck className="size-5 text-cyan-500" />
           </CardContent>
         </Card>
-
         <Card>
-          <CardHeader className="pb-2">
-            <CardDescription className="text-xs">Average Credit Score</CardDescription>
-            <CardTitle className="text-2xl font-bold font-mono-numbers">
-              712
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-xs text-muted-foreground flex items-center gap-1">
-            <Briefcase className="size-3.5 text-purple-500" /> Prime tier credit risk
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground">Client Retention</p>
+              <p className="text-2xl font-bold font-mono-numbers text-emerald-600">96.4%</p>
+            </div>
+            <ShieldCheck className="size-5 text-emerald-500" />
           </CardContent>
         </Card>
       </div>
 
-      {/* Customers Table */}
+      {/* Search & List */}
       <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-base font-semibold">Account Directory</CardTitle>
-              <CardDescription className="text-xs">
-                Simulated retail consumers, small businesses, and institutional accounts.
-              </CardDescription>
-            </div>
-            <Badge variant="outline">Sample Roster</Badge>
+        <CardHeader className="flex flex-row items-center justify-between pb-3">
+          <CardTitle className="text-base font-bold">Client Registry</CardTitle>
+          <div className="relative w-64">
+            <Search className="size-4 absolute left-3 top-2.5 text-muted-foreground" />
+            <Input
+              placeholder="Search clients..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 h-9 text-xs"
+            />
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead className="text-xs text-muted-foreground uppercase bg-muted/40 border-b border-border">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50 border-y border-border text-xs text-muted-foreground uppercase">
                 <tr>
-                  <th className="px-4 py-3">Customer Name</th>
-                  <th className="px-4 py-3">Category</th>
-                  <th className="px-4 py-3">Credit Score</th>
-                  <th className="px-4 py-3">Risk Tier</th>
-                  <th className="px-4 py-3">Deposit Balance</th>
-                  <th className="px-4 py-3">Loan Balance</th>
-                  <th className="px-4 py-3 text-right">Satisfaction</th>
+                  <th className="px-4 py-3 text-left">Client Name</th>
+                  <th className="px-4 py-3 text-left">Category</th>
+                  <th className="px-4 py-3 text-left">Account Type</th>
+                  <th className="px-4 py-3 text-right">Deposit Balance</th>
+                  <th className="px-4 py-3 text-center">Credit Score</th>
+                  <th className="px-4 py-3 text-center">Risk Tier</th>
+                  <th className="px-4 py-3 text-center">Satisfaction</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {customerList.length > 0 ? (
-                  customerList.map((c) => (
-                    <tr key={c.id} className="hover:bg-muted/30 transition-colors">
-                      <td className="px-4 py-3 font-medium text-foreground">
-                        {c.name}
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground capitalize">
-                        {c.category?.replace("_", " ") || "Retail"}
-                      </td>
-                      <td className="px-4 py-3 font-mono-numbers">
-                        {c.credit_score ?? 720}
-                      </td>
-                      <td className="px-4 py-3 capitalize">
-                        <Badge variant="outline">{c.risk_category || "Prime"}</Badge>
-                      </td>
-                      <td className="px-4 py-3 font-mono-numbers">
-                        {formatCurrency(c.total_deposits ?? 25000, bank.currency)}
-                      </td>
-                      <td className="px-4 py-3 font-mono-numbers">
-                        {formatCurrency(c.total_loans ?? 0, bank.currency)}
-                      </td>
-                      <td className="px-4 py-3 text-right font-mono-numbers">
-                        {c.satisfaction_score ?? 80}%
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  [
-                    { name: "Sarah Jenkins", cat: "Individual", score: 760, tier: "Prime", dep: 45000, loan: 180000, sat: 88 },
-                    { name: "Atlas Manufacturing Co", cat: "Corporate", score: 715, tier: "Prime", dep: 1250000, loan: 2400000, sat: 82 },
-                    { name: "BioGen Innovations", cat: "Medium Business", score: 680, tier: "Near Prime", dep: 340000, loan: 650000, sat: 74 },
-                    { name: "David Kim", cat: "Individual", score: 640, tier: "Subprime", dep: 8500, loan: 22000, sat: 70 },
-                    { name: "Cornerstone Bakery", cat: "Small Business", score: 730, tier: "Prime", dep: 85000, loan: 110000, sat: 86 },
-                  ].map((c, i) => (
-                    <tr key={i} className="hover:bg-muted/30 transition-colors">
-                      <td className="px-4 py-3 font-medium text-foreground">{c.name}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{c.cat}</td>
-                      <td className="px-4 py-3 font-mono-numbers font-medium">{c.score}</td>
-                      <td className="px-4 py-3"><Badge variant="outline">{c.tier}</Badge></td>
-                      <td className="px-4 py-3 font-mono-numbers">{formatCurrency(c.dep, bank.currency)}</td>
-                      <td className="px-4 py-3 font-mono-numbers">{formatCurrency(c.loan, bank.currency)}</td>
-                      <td className="px-4 py-3 text-right font-mono-numbers">{c.sat}%</td>
-                    </tr>
-                  ))
-                )}
+                {filtered.map((c) => (
+                  <tr key={c.id} className="hover:bg-muted/20">
+                    <td className="px-4 py-3 font-semibold text-foreground">{c.name}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{c.category}</td>
+                    <td className="px-4 py-3">
+                      <Badge variant="outline" className="text-xs font-normal">
+                        {c.account_type}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono-numbers font-medium">
+                      {formatCurrency(c.deposit_balance, currency)}
+                    </td>
+                    <td className="px-4 py-3 text-center font-mono-numbers font-medium text-blue-600">
+                      {c.credit_score}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <Badge
+                        variant="secondary"
+                        className={
+                          c.risk_category === "Low"
+                            ? "bg-emerald-50 text-emerald-700"
+                            : c.risk_category === "Medium"
+                            ? "bg-amber-50 text-amber-700"
+                            : "bg-red-50 text-red-700"
+                        }
+                      >
+                        {c.risk_category}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3 text-center font-mono-numbers text-emerald-600">
+                      {c.satisfaction}%
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>

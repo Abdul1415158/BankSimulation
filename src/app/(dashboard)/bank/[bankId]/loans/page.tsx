@@ -1,9 +1,11 @@
-import { createClient } from "@/lib/supabase/server";
-import { notFound } from "next/navigation";
+"use client";
+
+import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { formatCurrency, formatPercent } from "@/lib/formatters";
+import { formatCurrency } from "@/lib/formatters";
 import {
   CreditCard,
   AlertTriangle,
@@ -11,219 +13,167 @@ import {
   ShieldCheck,
   CheckCircle2,
   XCircle,
-  FileCheck,
   Bot,
-  UserCheck,
 } from "lucide-react";
+import { getBank, getLoans, approveLoan, rejectLoan, getSimulationState, Loan, SimulationState } from "@/lib/storage";
+import type { Bank } from "@/types/bank";
 
-export default async function LoansPage({
-  params,
-}: {
-  params: Promise<{ bankId: string }>;
-}) {
-  const { bankId } = await params;
-  const supabase = await createClient();
+export default function LoansPage() {
+  const params = useParams();
+  const bankId = params.bankId as string;
+  const [bank, setBank] = useState<Bank | null>(null);
+  const [loans, setLoans] = useState<Loan[]>([]);
+  const [state, setState] = useState<SimulationState | null>(null);
 
-  const { data: bank } = await supabase
-    .from("banks")
-    .select("currency")
-    .eq("id", bankId)
-    .single();
+  function reload() {
+    if (!bankId) return;
+    setBank(getBank(bankId));
+    setLoans(getLoans(bankId));
+    setState(getSimulationState(bankId));
+  }
 
-  if (!bank) notFound();
+  useEffect(() => {
+    reload();
+  }, [bankId]);
 
-  const { data: simState } = await supabase
-    .from("simulation_states")
-    .select("*")
-    .eq("bank_id", bankId)
-    .single();
+  if (!bank || !state) return <div className="p-6">Loading loan portfolio...</div>;
 
-  const totalLoans = Number(simState?.total_loans ?? 40000000);
-  const nplRatio = Number(simState?.non_performing_loan_ratio ?? 0.024);
-  const nplAmount = totalLoans * nplRatio;
-  const avgYield = 0.076; // 7.6%
-  const quarterlyInterest = (totalLoans * avgYield) / 4;
+  const currency = bank.currency || "USD";
+  const totalLoans = state.total_loans_outstanding;
+  const nplRatio = state.npl_ratio;
 
-  // Sample pending applications for underwriting
-  const sampleApplications = [
-    {
-      id: "app-101",
-      borrower: "Apex Logistics LLC",
-      type: "Commercial Term Loan",
-      amount: 450000,
-      creditScore: 742,
-      collateral: 580000,
-      aiRecommendation: "approve",
-      aiConfidence: 0.94,
-      riskTier: "Prime",
-    },
-    {
-      id: "app-102",
-      borrower: "Elena Rostova",
-      type: "Residential Mortgage",
-      amount: 320000,
-      creditScore: 685,
-      collateral: 390000,
-      aiRecommendation: "review",
-      aiConfidence: 0.72,
-      riskTier: "Near Prime",
-    },
-    {
-      id: "app-103",
-      borrower: "Solaris Green Tech",
-      type: "SME Working Capital",
-      amount: 180000,
-      creditScore: 610,
-      collateral: 95000,
-      aiRecommendation: "reject",
-      aiConfidence: 0.89,
-      riskTier: "High Risk",
-    },
-    {
-      id: "app-104",
-      borrower: "Marcus Vance",
-      type: "Consumer Auto Loan",
-      amount: 35000,
-      creditScore: 780,
-      collateral: 42000,
-      aiRecommendation: "approve",
-      aiConfidence: 0.98,
-      riskTier: "Super Prime",
-    },
-  ];
+  function handleApprove(id: string) {
+    approveLoan(bankId, id);
+    reload();
+  }
+
+  function handleReject(id: string) {
+    rejectLoan(bankId, id);
+    reload();
+  }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Loan Portfolio & Underwriting</h1>
-          <p className="text-sm text-muted-foreground">
-            Manage credit exposures, monitor non-performing loans, and review AI underwriting decisions.
-          </p>
-        </div>
+    <div className="p-6 space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Credit Portfolio & Lending Operations</h1>
+        <p className="text-sm text-muted-foreground">
+          Underwrite commercial and retail loans, manage risk grades, interest yields, and non-performing loans (NPL).
+        </p>
       </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
-          <CardHeader className="pb-2">
-            <CardDescription className="text-xs">Gross Loan Portfolio</CardDescription>
-            <CardTitle className="text-2xl font-bold font-mono-numbers">
-              {formatCurrency(totalLoans, bank.currency)}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-xs text-muted-foreground flex items-center gap-1">
-            <CreditCard className="size-3.5 text-blue-500" /> Earning assets
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground">Gross Loan Portfolio</p>
+              <p className="text-2xl font-bold font-mono-numbers">{formatCurrency(totalLoans, currency, true)}</p>
+            </div>
+            <CreditCard className="size-5 text-blue-500" />
           </CardContent>
         </Card>
-
         <Card>
-          <CardHeader className="pb-2">
-            <CardDescription className="text-xs">NPL Ratio</CardDescription>
-            <CardTitle className={`text-2xl font-bold font-mono-numbers ${nplRatio > 0.05 ? "text-destructive" : "text-emerald-600"}`}>
-              {formatPercent(nplRatio)}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-xs text-muted-foreground flex items-center gap-1">
-            <AlertTriangle className="size-3.5 text-amber-500" /> Defaulted: {formatCurrency(nplAmount, bank.currency)}
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground">Non-Performing Ratio</p>
+              <p className="text-2xl font-bold font-mono-numbers text-amber-600">{nplRatio}%</p>
+            </div>
+            <AlertTriangle className="size-5 text-amber-500" />
           </CardContent>
         </Card>
-
         <Card>
-          <CardHeader className="pb-2">
-            <CardDescription className="text-xs">Average Portfolio Yield</CardDescription>
-            <CardTitle className="text-2xl font-bold font-mono-numbers">
-              {formatPercent(avgYield)}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-xs text-muted-foreground flex items-center gap-1">
-            <TrendingUp className="size-3.5 text-emerald-500" /> Blended lending margin
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground">Weighted Lending Yield</p>
+              <p className="text-2xl font-bold font-mono-numbers text-emerald-600">7.8%</p>
+            </div>
+            <TrendingUp className="size-5 text-emerald-500" />
           </CardContent>
         </Card>
-
         <Card>
-          <CardHeader className="pb-2">
-            <CardDescription className="text-xs">Quarterly Interest Revenue</CardDescription>
-            <CardTitle className="text-2xl font-bold font-mono-numbers">
-              {formatCurrency(quarterlyInterest, bank.currency)}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-xs text-muted-foreground flex items-center gap-1">
-            <ShieldCheck className="size-3.5 text-cyan-500" /> Cash loan inflows
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground">Collateral Coverage</p>
+              <p className="text-2xl font-bold font-mono-numbers text-cyan-600">132%</p>
+            </div>
+            <ShieldCheck className="size-5 text-cyan-500" />
           </CardContent>
         </Card>
       </div>
 
-      {/* Loan Origination Pipeline */}
+      {/* Active Loan Portfolio */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-base font-semibold">Underwriting Decision Queue</CardTitle>
-              <CardDescription className="text-xs">
-                Pending applications evaluated by AI Credit Assessment agents with human review flags.
-              </CardDescription>
-            </div>
-            <Badge variant="outline">4 Pending Applications</Badge>
-          </div>
+          <CardTitle className="text-base font-bold">Active Credit Facilities</CardTitle>
+          <CardDescription className="text-xs">Underwritten commercial, corporate, mortgage, and retail facilities.</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead className="text-xs text-muted-foreground uppercase bg-muted/40 border-b border-border">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50 border-y border-border text-xs text-muted-foreground uppercase">
                 <tr>
-                  <th className="px-4 py-3">Borrower</th>
-                  <th className="px-4 py-3">Loan Facility</th>
-                  <th className="px-4 py-3">Requested</th>
-                  <th className="px-4 py-3">Credit Score</th>
-                  <th className="px-4 py-3">Collateral</th>
-                  <th className="px-4 py-3">AI Recommendation</th>
-                  <th className="px-4 py-3">Confidence</th>
-                  <th className="px-4 py-3 text-right">Actions</th>
+                  <th className="px-4 py-3 text-left">Borrower</th>
+                  <th className="px-4 py-3 text-left">Category</th>
+                  <th className="px-4 py-3 text-right">Principal</th>
+                  <th className="px-4 py-3 text-center">Interest Rate</th>
+                  <th className="px-4 py-3 text-center">Risk Grade</th>
+                  <th className="px-4 py-3 text-right">Collateral</th>
+                  <th className="px-4 py-3 text-center">Status</th>
+                  <th className="px-4 py-3 text-right">Decision</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {sampleApplications.map((app) => (
-                  <tr key={app.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-4 py-3 font-medium text-foreground">
-                      {app.borrower}
+                {loans.map((loan) => (
+                  <tr key={loan.id} className="hover:bg-muted/20">
+                    <td className="px-4 py-3 font-semibold">{loan.borrower_name}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{loan.category}</td>
+                    <td className="px-4 py-3 text-right font-mono-numbers font-medium">
+                      {formatCurrency(loan.amount, currency)}
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {app.type}
+                    <td className="px-4 py-3 text-center font-mono-numbers text-emerald-600 font-semibold">
+                      {loan.interest_rate}%
                     </td>
-                    <td className="px-4 py-3 font-mono-numbers">
-                      {formatCurrency(app.amount, bank.currency)}
-                    </td>
-                    <td className="px-4 py-3 font-mono-numbers">
-                      <span className={app.creditScore >= 700 ? "text-emerald-600 font-semibold" : app.creditScore >= 650 ? "text-amber-600" : "text-destructive"}>
-                        {app.creditScore}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 font-mono-numbers">
-                      {formatCurrency(app.collateral, bank.currency)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge
-                        variant={
-                          app.aiRecommendation === "approve"
-                            ? "default"
-                            : app.aiRecommendation === "review"
-                            ? "secondary"
-                            : "destructive"
-                        }
-                        className="capitalize gap-1"
-                      >
-                        <Bot className="size-3" />
-                        {app.aiRecommendation}
+                    <td className="px-4 py-3 text-center">
+                      <Badge variant="outline" className="text-xs font-mono">
+                        {loan.risk_grade}
                       </Badge>
                     </td>
-                    <td className="px-4 py-3 font-mono-numbers text-xs">
-                      {Math.round(app.aiConfidence * 100)}%
+                    <td className="px-4 py-3 text-right font-mono-numbers text-muted-foreground">
+                      {formatCurrency(loan.collateral_value, currency)}
                     </td>
-                    <td className="px-4 py-3 text-right space-x-2">
-                      <Button size="xs" variant="outline" className="h-6 px-2 text-xs">
-                        Review
-                      </Button>
+                    <td className="px-4 py-3 text-center">
+                      <Badge
+                        variant="secondary"
+                        className={
+                          loan.status === "Active"
+                            ? "bg-emerald-50 text-emerald-700"
+                            : loan.status === "Pending"
+                            ? "bg-amber-50 text-amber-700"
+                            : "bg-red-50 text-red-700"
+                        }
+                      >
+                        {loan.status}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex justify-end gap-1.5">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleApprove(loan.id)}
+                          className="text-emerald-600 hover:bg-emerald-50 h-7 px-2"
+                        >
+                          <CheckCircle2 className="size-3.5" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleReject(loan.id)}
+                          className="text-red-500 hover:bg-red-50 h-7 px-2"
+                        >
+                          <XCircle className="size-3.5" />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}

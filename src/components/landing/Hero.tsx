@@ -44,7 +44,17 @@ function AnimatedCounter({ target, format }: { target: number; format: (v: numbe
 
 export function Hero() {
   return (
-    <section className="relative min-h-screen flex items-center animated-gradient overflow-hidden">
+    <section className="relative min-h-screen flex items-center overflow-hidden bg-slate-950">
+      {/* Banking Background Image with Atmospheric Gradient Overlay */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat scale-105 transition-transform duration-1000"
+        style={{
+          backgroundImage: `url('https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=2400&q=85')`,
+        }}
+      />
+      <div className="absolute inset-0 bg-gradient-to-r from-[#060b17]/95 via-[#0a1226]/85 to-[#0b1b3a]/90 backdrop-blur-[2px]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-600/15 via-transparent to-transparent pointer-events-none" />
+
       {/* Floating particles */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {Array.from({ length: 20 }).map((_, i) => (
