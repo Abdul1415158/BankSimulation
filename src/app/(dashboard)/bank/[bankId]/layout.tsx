@@ -21,7 +21,7 @@ import {
   ArrowLeft,
   ChevronRight,
 } from "lucide-react";
-import { getBank } from "@/lib/storage";
+import { getBank, getUnreadReportsCount } from "@/lib/storage";
 import type { Bank } from "@/types/bank";
 
 const sidebarLinks = [
@@ -48,6 +48,7 @@ export default function BankLayout({
   const router = useRouter();
   const bankId = params.bankId as string;
   const [bank, setBank] = useState<Bank | null>(null);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -58,6 +59,7 @@ export default function BankLayout({
       return;
     }
     setBank(b);
+    setUnreadCount(getUnreadReportsCount(bankId));
     setLoading(false);
   }, [bankId, router]);
 
@@ -84,8 +86,8 @@ export default function BankLayout({
             </div>
             <div className="min-w-0">
               <p className="font-semibold text-white text-sm truncate">{bank.name}</p>
-              <p className="text-xs text-white/40">
-                Y{bank.current_year} Q{bank.current_quarter} · {bank.currency}
+              <p className="text-xs text-blue-300 font-mono-numbers">
+                Year {bank.current_year} · Q{bank.current_quarter}/5
               </p>
             </div>
           </div>
@@ -97,10 +99,17 @@ export default function BankLayout({
             <Link
               key={link.label}
               href={`/bank/${bankId}${link.href}`}
-              className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors hover:bg-white/5 hover:text-white"
+              className="flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors hover:bg-white/5 hover:text-white"
             >
-              <link.icon className="size-4 shrink-0" />
-              {link.label}
+              <div className="flex items-center gap-2.5">
+                <link.icon className="size-4 shrink-0" />
+                <span>{link.label}</span>
+              </div>
+              {link.href === "/reports" && unreadCount > 0 && (
+                <span className="bg-rose-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                  {unreadCount}
+                </span>
+              )}
             </Link>
           ))}
         </nav>
@@ -108,9 +117,9 @@ export default function BankLayout({
         {/* Quarter indicator */}
         <div className="p-4 border-t border-white/10">
           <div className="flex items-center justify-between text-xs">
-            <span className="text-white/40">Simulation</span>
-            <Badge variant="secondary" className="bg-blue-500/20 text-blue-300 text-xs">
-              {bank.status}
+            <span className="text-white/40">5-Yr Tenure</span>
+            <Badge variant="secondary" className="bg-blue-500/20 text-blue-300 text-xs font-mono-numbers">
+              Q{((bank.current_year - 1) * 5) + bank.current_quarter} / 25
             </Badge>
           </div>
           <Button size="sm" className="w-full mt-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white border-0 text-xs" asChild>

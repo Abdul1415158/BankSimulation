@@ -73,7 +73,7 @@ export function Hero() {
         ))}
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-32 w-full">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-32 w-full">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Left content */}
           <div className="text-white space-y-8">
@@ -94,21 +94,20 @@ export function Hero() {
               survive changing economic conditions.
             </p>
 
-            <div className="flex flex-wrap gap-4">
+            <div className="flex flex-wrap items-center gap-4 pt-2">
               <Button
                 size="lg"
                 asChild
-                className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white border-0 h-12 px-8 text-base"
+                className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-semibold border-0 h-12 px-8 text-base shadow-lg shadow-blue-500/25"
               >
-                <Link href="/register">Start Your Bank</Link>
+                <Link href="/register">Get Started</Link>
               </Button>
               <Button
                 size="lg"
-                variant="outline"
                 asChild
-                className="border-white/30 text-white hover:bg-white/10 h-12 px-8 text-base"
+                className="bg-white/10 hover:bg-white/20 text-white border border-white/25 backdrop-blur-md h-12 px-8 text-base font-semibold transition-all"
               >
-                <a href="#features">Explore Simulation</a>
+                <a href="#features">Explore</a>
               </Button>
             </div>
           </div>

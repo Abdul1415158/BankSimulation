@@ -25,6 +25,7 @@ export interface Bank {
   user_id: string;
   slot_id: string;
   name: string;
+  ceo_name?: string;
   country: string;
   city: string;
   currency: string;
@@ -32,10 +33,12 @@ export interface Bank {
   logo_url: string | null;
   difficulty: Difficulty;
   simulation_duration_years: number;
+  start_year?: number;
+  operating_mode?: "guided" | "unguided";
   initial_strategy: string;
   starting_capital: number;
   current_year: number;
-  current_quarter: 1 | 2 | 3 | 4;
+  current_quarter: 1 | 2 | 3 | 4 | 5;
   status: BankStatus;
   quarter_processing: boolean;
   random_seed: number;
@@ -47,14 +50,67 @@ export interface Bank {
 /** Bank creation form data */
 export interface CreateBankFormData {
   name: string;
+  ceo_name: string;
   country: string;
   city: string;
   currency: string;
   bank_type: BankType;
   difficulty: Difficulty;
   simulation_duration_years: number;
+  start_year: number;
+  operating_mode: "guided" | "unguided";
   initial_strategy: string;
   starting_capital: number;
+}
+
+/** 15-Section Annual Report Structure */
+export interface AnnualReportSection {
+  title: string;
+  content: string;
+  metrics?: Record<string, string | number>;
+  status?: "positive" | "warning" | "neutral" | "negative";
+}
+
+export interface AnnualReport {
+  id: string;
+  bank_id: string;
+  year: number;
+  calendar_year: number;
+  generated_at: string;
+  is_read: boolean;
+  sections: {
+    executive_summary: AnnualReportSection;
+    financial_performance: AnnualReportSection;
+    profit_and_loss: AnnualReportSection;
+    assets_and_liabilities: AnnualReportSection;
+    loan_portfolio: AnnualReportSection;
+    deposit_growth: AnnualReportSection;
+    capital_and_liquidity: AnnualReportSection;
+    employee_and_hr: AnnualReportSection;
+    department_performance: AnnualReportSection;
+    security_and_risk: AnnualReportSection;
+    regulatory_and_compliance: AnnualReportSection;
+    major_decisions: AnnualReportSection;
+    important_events: AnnualReportSection;
+    achievements_and_failures: AnnualReportSection;
+    recommendations_next_year: AnnualReportSection;
+  };
+}
+
+export interface FinalFiveYearReport {
+  id: string;
+  bank_id: string;
+  completed_at: string;
+  ceo_name: string;
+  bank_name: string;
+  mandate_grade: "A - Exemplary" | "B - Sound Institution" | "C - Marginal" | "Dismissed by Board";
+  summary: string;
+  cumulative_profit: number;
+  peak_assets: number;
+  total_loans_issued: number;
+  npl_final: number;
+  final_car: number;
+  total_quarters_completed: number;
 }
 
 /** Bank settings */

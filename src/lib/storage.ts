@@ -1,9 +1,9 @@
 "use client";
 
-import type { Bank, BankSlot, BankSettings, CreateBankFormData, BankType, Difficulty } from "@/types/bank";
+import type { Bank, BankSlot, BankSettings, CreateBankFormData, BankType, Difficulty, AnnualReport, FinalFiveYearReport } from "@/types/bank";
 import { formatCurrency } from "@/lib/formatters";
 
-export type { BankSettings };
+export type { BankSettings, AnnualReport, FinalFiveYearReport };
 
 export interface UserProfile {
   id: string;
@@ -113,7 +113,7 @@ export interface SimulationState {
 export interface EconomicCondition {
   bank_id: string;
   year: number;
-  quarter: 1 | 2 | 3 | 4;
+  quarter: 1 | 2 | 3 | 4 | 5;
   gdp_growth: number;
   inflation_rate: number;
   central_bank_rate: number;
@@ -141,6 +141,17 @@ export interface CrisisEvent {
     reputation_impact: number;
     risk_reduction: number;
   }[];
+}
+
+export interface BankSecurityConfig {
+  bank_id: string;
+  cybersecurity_tier: "Basic" | "Enhanced" | "Military-Grade";
+  fraud_monitoring: "Manual" | "Automated" | "AI-Realtime";
+  physical_security: "Standard" | "Armed Guards" | "High-Sec Vault";
+  internal_controls: "Standard" | "Dual Authorization" | "Continuous Audit";
+  quarterly_security_budget: number;
+  active_incidents_count: number;
+  last_audit_score: number; // 0 - 100
 }
 
 export interface QuarterHistory {
@@ -171,6 +182,9 @@ const KEY_ECONOMY = "bankverse_economy";
 const KEY_EVENTS = "bankverse_events";
 const KEY_HISTORY = "bankverse_history";
 const KEY_SETTINGS = "bankverse_settings";
+const KEY_ANNUAL_REPORTS = "bankverse_annual_reports";
+const KEY_FINAL_REPORTS = "bankverse_final_reports";
+const KEY_SECURITY = "bankverse_security";
 
 function getStorage<T>(key: string, defaultValue: T): T {
   if (typeof window === "undefined") return defaultValue;
@@ -256,13 +270,16 @@ export function createBankInSlot(slotNumber: 1 | 2 | 3, data: CreateBankFormData
     user_id: user.id,
     slot_id: slots[slotIndex].id,
     name: data.name,
+    ceo_name: data.ceo_name || user.name || "Chief Executive Officer",
     country: data.country,
     city: data.city,
     currency: data.currency,
     bank_type: data.bank_type,
     logo_url: null,
     difficulty: data.difficulty,
-    simulation_duration_years: data.simulation_duration_years,
+    simulation_duration_years: data.simulation_duration_years || 5,
+    start_year: data.start_year || 2025,
+    operating_mode: data.operating_mode || "guided",
     initial_strategy: data.initial_strategy,
     starting_capital: data.starting_capital,
     current_year: 1,
@@ -286,164 +303,103 @@ export function createBankInSlot(slotNumber: 1 | 2 | 3, data: CreateBankFormData
   slots[slotIndex].updated_at = now;
   setStorage(KEY_SLOTS, slots);
 
-  // 3. Initialize Starting Financial State
+  // 3. Initialize Starting Financial State (ZERO START: Charter Capital only, No pre-existing debt or deposits)
   const initialCapital = data.starting_capital;
-  const initialDeposits = Math.round(initialCapital * 1.5);
-  const initialLoans = Math.round(initialCapital * 1.2);
-  const cashReserves = initialCapital + initialDeposits - initialLoans;
-
   const initialState: SimulationState = {
     bank_id: bankId,
-    total_assets: initialCapital + initialDeposits,
-    total_liabilities: initialDeposits,
+    total_assets: initialCapital,
+    total_liabilities: 0,
     total_equity: initialCapital,
-    cash_reserves: cashReserves,
-    total_deposits: initialDeposits,
-    total_loans_outstanding: initialLoans,
-    net_interest_income: Math.round(initialLoans * 0.02),
-    non_interest_income: 150000,
-    operating_expenses: 420000,
-    loan_loss_provisions: 50000,
-    net_profit: 180000,
-    liquidity_ratio: parseFloat(((cashReserves / initialDeposits) * 100).toFixed(1)),
-    capital_adequacy_ratio: 24.5,
-    npl_ratio: 1.2,
-    roe: 8.4,
-    roa: 1.6,
-    customer_satisfaction: 88,
-    total_employees: 14,
-    total_ai_agents: 2,
+    cash_reserves: initialCapital,
+    total_deposits: 0,
+    total_loans_outstanding: 0,
+    net_interest_income: 0,
+    non_interest_income: 0,
+    operating_expenses: 0,
+    loan_loss_provisions: 0,
+    net_profit: 0,
+    liquidity_ratio: 100,
+    capital_adequacy_ratio: 100,
+    npl_ratio: 0.0,
+    roe: 0.0,
+    roa: 0.0,
+    customer_satisfaction: 100,
+    total_employees: 0,
+    total_ai_agents: 0,
     fraud_incidents: 0,
   };
   const allStates = getStorage<Record<string, SimulationState>>(KEY_STATES, {});
   allStates[bankId] = initialState;
   setStorage(KEY_STATES, allStates);
 
-  // 4. Initialize 10 Departments
+  // 4. Initialize 10 Departments (Ready for hiring)
   const deptNames = [
-    { name: "Customer Service", manager: "Sarah Jenkins", emp: 4, ai: 1, budget: 35000 },
-    { name: "Loan and Credit Department", manager: "Marcus Vance", emp: 3, ai: 1, budget: 45000 },
-    { name: "Cash Operations", manager: "David Ross", emp: 2, ai: 0, budget: 25000 },
-    { name: "Risk Management", manager: "Elena Rostova", emp: 1, ai: 0, budget: 30000 },
-    { name: "Fraud Prevention", manager: "Alan Turing", emp: 1, ai: 0, budget: 28000 },
-    { name: "Treasury", manager: "Claire Beaumont", emp: 1, ai: 0, budget: 40000 },
-    { name: "Compliance", manager: "Robert Sterling", emp: 1, ai: 0, budget: 32000 },
-    { name: "Human Resources", manager: "Chloe Adams", emp: 1, ai: 0, budget: 20000 },
-    { name: "Digital Banking", manager: "Kevin Lin", emp: 0, ai: 0, budget: 50000 },
-    { name: "IT and Cybersecurity", manager: "Alex Chen", emp: 1, ai: 0, budget: 60000 },
+    { name: "Customer Service", manager: "Unassigned (Vacant)", emp: 0, ai: 0, budget: 15000 },
+    { name: "Loan and Credit Department", manager: "Unassigned (Vacant)", emp: 0, ai: 0, budget: 20000 },
+    { name: "Cash Operations", manager: "Unassigned (Vacant)", emp: 0, ai: 0, budget: 15000 },
+    { name: "Risk Management", manager: "Unassigned (Vacant)", emp: 0, ai: 0, budget: 15000 },
+    { name: "Fraud Prevention", manager: "Unassigned (Vacant)", emp: 0, ai: 0, budget: 12000 },
+    { name: "Treasury", manager: "Unassigned (Vacant)", emp: 0, ai: 0, budget: 20000 },
+    { name: "Compliance", manager: "Unassigned (Vacant)", emp: 0, ai: 0, budget: 15000 },
+    { name: "Human Resources", manager: "Unassigned (Vacant)", emp: 0, ai: 0, budget: 12000 },
+    { name: "Digital Banking", manager: "Unassigned (Vacant)", emp: 0, ai: 0, budget: 25000 },
+    { name: "IT and Cybersecurity", manager: "Unassigned (Vacant)", emp: 0, ai: 0, budget: 25000 },
   ];
   const departments: Department[] = deptNames.map((d, i) => ({
     id: `dept-${bankId}-${i + 1}`,
     bank_id: bankId,
     name: d.name,
     manager_name: d.manager,
-    employee_count: d.emp,
-    ai_agent_count: d.ai,
+    employee_count: 0,
+    ai_agent_count: 0,
     budget_monthly: d.budget,
-    productivity: 85 + Math.floor(Math.random() * 10),
-    workload: 70 + Math.floor(Math.random() * 20),
-    error_rate: 1.2,
-    performance_score: 88,
+    productivity: 0,
+    workload: 0,
+    error_rate: 0,
+    performance_score: 50,
   }));
   const allDepts = getStorage<Record<string, Department[]>>(KEY_DEPARTMENTS, {});
   allDepts[bankId] = departments;
   setStorage(KEY_DEPARTMENTS, allDepts);
 
-  // 5. Initialize Starting Employees
-  const employeeSeed = [
-    { name: "Emma Watson", role: "Senior Loan Officer", dept: "Loan and Credit Department", salary: 75000, exp: 6, skill: "Senior" as const },
-    { name: "Liam Miller", role: "Credit Risk Analyst", dept: "Loan and Credit Department", salary: 62000, exp: 3, skill: "Mid" as const },
-    { name: "Sophia Davis", role: "Junior Underwriter", dept: "Loan and Credit Department", salary: 48000, exp: 1, skill: "Junior" as const },
-    { name: "James Wilson", role: "Customer Service Lead", dept: "Customer Service", salary: 55000, exp: 5, skill: "Lead" as const },
-    { name: "Olivia Taylor", role: "Support Representative", dept: "Customer Service", salary: 42000, exp: 2, skill: "Junior" as const },
-    { name: "Noah Anderson", role: "VIP Relationship Manager", dept: "Customer Service", salary: 68000, exp: 4, skill: "Mid" as const },
-    { name: "Ava Thomas", role: "Branch Cashier", dept: "Cash Operations", salary: 40000, exp: 2, skill: "Junior" as const },
-    { name: "Ethan Jackson", role: "Vault Supervisor", dept: "Cash Operations", salary: 58000, exp: 7, skill: "Senior" as const },
-    { name: "Isabella White", role: "Chief Risk Officer", dept: "Risk Management", salary: 110000, exp: 10, skill: "Lead" as const },
-    { name: "Lucas Harris", role: "Senior Fraud Investigator", dept: "Fraud Prevention", salary: 78000, exp: 5, skill: "Senior" as const },
-    { name: "Mia Martin", role: "Treasury Portfolio Manager", dept: "Treasury", salary: 95000, exp: 8, skill: "Senior" as const },
-    { name: "Benjamin Clark", role: "Regulatory Compliance Officer", dept: "Compliance", salary: 72000, exp: 4, skill: "Mid" as const },
-    { name: "Charlotte Lewis", role: "HR Generalist", dept: "Human Resources", salary: 52000, exp: 3, skill: "Mid" as const },
-    { name: "Henry Walker", role: "Cybersecurity Engineer", dept: "IT and Cybersecurity", salary: 88000, exp: 5, skill: "Senior" as const },
-  ];
-  const employees: Employee[] = employeeSeed.map((e, idx) => ({
-    id: `emp-${bankId}-${idx + 1}`,
-    bank_id: bankId,
-    department_id: departments.find((d) => d.name === e.dept)?.id || departments[0].id,
-    department_name: e.dept,
-    name: e.name,
-    role: e.role,
-    salary: e.salary,
-    experience_years: e.exp,
-    skill_level: e.skill,
-    productivity: 88 + (idx % 7),
-    accuracy: 94 + (idx % 5),
-    customer_rating: 4.6,
-    morale: 92,
-    status: "Active",
-  }));
+  // 5. Zero Initial Employees (Recruit via HR)
   const allEmps = getStorage<Record<string, Employee[]>>(KEY_EMPLOYEES, {});
-  allEmps[bankId] = employees;
+  allEmps[bankId] = [];
   setStorage(KEY_EMPLOYEES, allEmps);
 
-  // 6. Initialize Starting AI Agents
-  const initialAi: AiAgent[] = [
-    {
-      id: `ai-${bankId}-1`,
-      bank_id: bankId,
-      department_id: departments[0].id,
-      department_name: "Customer Service",
-      name: "Atlas-CS1",
-      agent_type: "AI Customer Support Agent",
-      monthly_cost: 2500,
-      processing_speed: "12x Human",
-      accuracy: 91,
-      error_probability: 2.1,
-      cybersecurity_risk: 1.5,
-      human_supervision_needed: "Low",
-      status: "Active",
-    },
-    {
-      id: `ai-${bankId}-2`,
-      bank_id: bankId,
-      department_id: departments[1].id,
-      department_name: "Loan and Credit Department",
-      name: "Cortex-Credit",
-      agent_type: "AI Loan Assessment Agent",
-      monthly_cost: 4200,
-      processing_speed: "8x Human",
-      accuracy: 89,
-      error_probability: 3.4,
-      cybersecurity_risk: 2.8,
-      human_supervision_needed: "Medium",
-      status: "Active",
-    },
-  ];
+  // 6. Zero Initial AI Agents
   const allAi = getStorage<Record<string, AiAgent[]>>(KEY_AI_AGENTS, {});
-  allAi[bankId] = initialAi;
+  allAi[bankId] = [];
   setStorage(KEY_AI_AGENTS, allAi);
 
-  // 7. Initialize Customers
-  const customerSeed: Customer[] = [
-    { id: `cust-1`, bank_id: bankId, name: "Apex Logistics Corp", category: "Corporate", account_type: "Checking", deposit_balance: 4200000, credit_score: 790, risk_category: "Low", satisfaction: 94, status: "Active" },
-    { id: `cust-2`, bank_id: bankId, name: "Green Valley Organics", category: "Small Business", account_type: "Checking", deposit_balance: 380000, credit_score: 720, risk_category: "Low", satisfaction: 89, status: "Active" },
-    { id: `cust-3`, bank_id: bankId, name: "Dr. Alistair Finch", category: "Individual", account_type: "Fixed Deposit", deposit_balance: 650000, credit_score: 810, risk_category: "Low", satisfaction: 96, status: "Active" },
-    { id: `cust-4`, bank_id: bankId, name: "Skyline Media Group", category: "Medium Business", account_type: "Checking", deposit_balance: 1400000, credit_score: 680, risk_category: "Medium", satisfaction: 82, status: "Active" },
-    { id: `cust-5`, bank_id: bankId, name: "Jessica Barnes", category: "Individual", account_type: "Savings", deposit_balance: 85000, credit_score: 740, risk_category: "Low", satisfaction: 91, status: "Active" },
-  ];
+  // 7. Zero Initial Customers
   const allCusts = getStorage<Record<string, Customer[]>>(KEY_CUSTOMERS, {});
-  allCusts[bankId] = customerSeed;
+  allCusts[bankId] = [];
   setStorage(KEY_CUSTOMERS, allCusts);
 
-  // 8. Initialize Loans
-  const loanSeed: Loan[] = [
-    { id: `loan-1`, bank_id: bankId, borrower_name: "Apex Logistics Corp", category: "Corporate", amount: 2500000, interest_rate: 6.8, term_months: 60, remaining_months: 52, monthly_payment: 49200, status: "Active", risk_grade: "AA", collateral_value: 3800000 },
-    { id: `loan-2`, bank_id: bankId, borrower_name: "Green Valley Organics", category: "Business", amount: 450000, interest_rate: 8.2, term_months: 36, remaining_months: 28, monthly_payment: 14100, status: "Active", risk_grade: "A", collateral_value: 620000 },
-    { id: `loan-3`, bank_id: bankId, borrower_name: "Michael Chang", category: "Mortgage", amount: 720000, interest_rate: 5.4, term_months: 360, remaining_months: 340, monthly_payment: 4040, status: "Active", risk_grade: "AAA", collateral_value: 950000 },
-    { id: `loan-4`, bank_id: bankId, borrower_name: "Sarah Jenkins", category: "Personal", amount: 35000, interest_rate: 11.5, term_months: 24, remaining_months: 18, monthly_payment: 1640, status: "Active", risk_grade: "A", collateral_value: 45000 },
+  // 8. Initial Loans: 0 Active, 2 Incoming Pending Applications for CEO Review
+  const pendingLoanSeed: Loan[] = [
+    { id: `loan-${bankId}-init-1`, bank_id: bankId, borrower_name: "Apex Logistics Corp", category: "Corporate", amount: 1500000, interest_rate: 6.8, term_months: 60, remaining_months: 60, monthly_payment: 29500, status: "Pending", risk_grade: "AA", collateral_value: 2200000 },
+    { id: `loan-${bankId}-init-2`, bank_id: bankId, borrower_name: "Dr. Alistair Finch", category: "Mortgage", amount: 450000, interest_rate: 5.4, term_months: 240, remaining_months: 240, monthly_payment: 3070, status: "Pending", risk_grade: "AAA", collateral_value: 650000 },
   ];
   const allLoans = getStorage<Record<string, Loan[]>>(KEY_LOANS, {});
-  allLoans[bankId] = loanSeed;
+  allLoans[bankId] = pendingLoanSeed;
+  setStorage(KEY_LOANS, allLoans);
+
+  // 9. Initial Security Configuration
+  const initialSecurity: BankSecurityConfig = {
+    bank_id: bankId,
+    cybersecurity_tier: "Basic",
+    fraud_monitoring: "Manual",
+    physical_security: "Standard",
+    internal_controls: "Standard",
+    quarterly_security_budget: 25000,
+    active_incidents_count: 0,
+    last_audit_score: 80,
+  };
+  const allSec = getStorage<Record<string, BankSecurityConfig>>(KEY_SECURITY, {});
+  allSec[bankId] = initialSecurity;
+  setStorage(KEY_SECURITY, allSec);
   setStorage(KEY_LOANS, allLoans);
 
   // 9. Initial Economic Condition
@@ -625,6 +581,32 @@ export function getCustomers(bankId: string): Customer[] {
   return allCusts[bankId] || [];
 }
 
+export function onboardCustomer(bankId: string, customerData: Omit<Customer, "id" | "bank_id">): Customer {
+  const allCusts = getStorage<Record<string, Customer[]>>(KEY_CUSTOMERS, {});
+  const bankCusts = allCusts[bankId] || [];
+  const newCustomer: Customer = {
+    ...customerData,
+    id: `cust-${bankId}-${Date.now()}`,
+    bank_id: bankId,
+  };
+  bankCusts.push(newCustomer);
+  allCusts[bankId] = bankCusts;
+  setStorage(KEY_CUSTOMERS, allCusts);
+
+  // Update financial state
+  const allStates = getStorage<Record<string, SimulationState>>(KEY_STATES, {});
+  const state = allStates[bankId];
+  if (state) {
+    state.total_deposits += newCustomer.deposit_balance;
+    state.total_liabilities += newCustomer.deposit_balance;
+    state.total_assets += newCustomer.deposit_balance;
+    state.cash_reserves += newCustomer.deposit_balance;
+    setStorage(KEY_STATES, allStates);
+  }
+
+  return newCustomer;
+}
+
 export function getLoans(bankId: string): Loan[] {
   const allLoans = getStorage<Record<string, Loan[]>>(KEY_LOANS, {});
   return allLoans[bankId] || [];
@@ -637,6 +619,15 @@ export function approveLoan(bankId: string, loanId: string): void {
   if (l) {
     l.status = "Active";
     setStorage(KEY_LOANS, allLoans);
+
+    // Update financial state
+    const allStates = getStorage<Record<string, SimulationState>>(KEY_STATES, {});
+    const state = allStates[bankId];
+    if (state) {
+      state.total_loans_outstanding += l.amount;
+      state.cash_reserves = Math.max(0, state.cash_reserves - l.amount);
+      setStorage(KEY_STATES, allStates);
+    }
   }
 }
 
@@ -719,7 +710,256 @@ export function getQuarterHistory(bankId: string): QuarterHistory[] {
   return allHist[bankId] || [];
 }
 
-// 12. ADVANCE QUARTER SIMULATION
+// 12. ANNUAL & FINAL REPORTS GENERATORS
+function generateAnnualReportForYear(bankId: string, year: number): AnnualReport {
+  const bank = getBank(bankId);
+  const state = getSimulationState(bankId);
+  const history = getQuarterHistory(bankId);
+  const emps = getEmployees(bankId);
+  const depts = getDepartments(bankId);
+  const loans = getLoans(bankId);
+  const sec = getSecurityConfig(bankId);
+  const events = getEvents(bankId).filter((e) => e.year === year);
+
+  const calendarYear = (bank?.start_year || 2025) + (year - 1);
+  const yearHistory = history.filter((h) => h.year === year);
+  const totalQuarterProfit = yearHistory.reduce((sum, h) => sum + h.net_profit, 0);
+  const totalNII = yearHistory.reduce((sum, h) => sum + h.net_interest_income, 0);
+  const activeLoans = loans.filter((l) => l.status === "Active");
+
+  return {
+    id: `rep-${bankId}-y${year}`,
+    bank_id: bankId,
+    year,
+    calendar_year: calendarYear,
+    generated_at: new Date().toISOString(),
+    is_read: false,
+    sections: {
+      executive_summary: {
+        title: "1. Executive Summary",
+        content: `Annual Review for ${bank?.name || "The Institution"} under Chairman & CEO ${bank?.ceo_name || "Executive Leadership"}. Year ${year} (${calendarYear}) concluded all 5 operational quarters. Total assets stand at ${formatCurrency(state.total_assets)} supported by ${formatCurrency(state.total_equity)} in tier-1 capital reserves. Overall solvency remains ${state.capital_adequacy_ratio >= 12 ? "satisfactory and compliant" : "under supervisory observation"}.`,
+        status: state.capital_adequacy_ratio >= 12 ? "positive" : "warning",
+        metrics: {
+          "Calendar Year": calendarYear,
+          "Total Assets": formatCurrency(state.total_assets),
+          "Total Equity": formatCurrency(state.total_equity),
+          "Quarters Completed": 5,
+        },
+      },
+      financial_performance: {
+        title: "2. Financial Performance",
+        content: `Full year net profit recorded at ${formatCurrency(totalQuarterProfit)}. Return on Equity (ROE) annualized at ${state.roe}% with Return on Assets (ROA) of ${state.roa}%. The bank maintains cash reserves of ${formatCurrency(state.cash_reserves)}.`,
+        status: totalQuarterProfit >= 0 ? "positive" : "negative",
+        metrics: {
+          "Year Net Profit": formatCurrency(totalQuarterProfit),
+          "Return on Equity": `${state.roe}%`,
+          "Return on Assets": `${state.roa}%`,
+          "Cash Liquidity": formatCurrency(state.cash_reserves),
+        },
+      },
+      profit_and_loss: {
+        title: "3. Profit and Loss",
+        content: `Net interest income generated over the 5 quarters totaled ${formatCurrency(totalNII)}. Operating expenditure absorbed ${formatCurrency(state.operating_expenses * 5)}, with loan loss provisions of ${formatCurrency(state.loan_loss_provisions * 5)}.`,
+        metrics: {
+          "Net Interest Income": formatCurrency(totalNII),
+          "Operating Expenses (Est.)": formatCurrency(state.operating_expenses * 5),
+          "Loan Provisions": formatCurrency(state.loan_loss_provisions * 5),
+        },
+      },
+      assets_and_liabilities: {
+        title: "4. Assets and Liabilities",
+        content: `Balance sheet total stood at ${formatCurrency(state.total_assets)}, balanced by ${formatCurrency(state.total_liabilities)} in customer liabilities and ${formatCurrency(state.total_equity)} in core equity capital.`,
+        metrics: {
+          "Total Assets": formatCurrency(state.total_assets),
+          "Customer Deposits": formatCurrency(state.total_deposits),
+          "Core Capital Equity": formatCurrency(state.total_equity),
+        },
+      },
+      loan_portfolio: {
+        title: "5. Loan Portfolio Performance",
+        content: `The active loan book amounts to ${formatCurrency(state.total_loans_outstanding)} across ${activeLoans.length} authorized credit lines. Non-Performing Loan (NPL) ratio stands at ${state.npl_ratio}%.`,
+        status: state.npl_ratio <= 3 ? "positive" : state.npl_ratio <= 5 ? "warning" : "negative",
+        metrics: {
+          "Loans Outstanding": formatCurrency(state.total_loans_outstanding),
+          "Active Loans Count": activeLoans.length,
+          "NPL Ratio": `${state.npl_ratio}%`,
+        },
+      },
+      deposit_growth: {
+        title: "6. Deposit Growth",
+        content: `Total customer deposit book finished at ${formatCurrency(state.total_deposits)}. Liquidity Coverage Ratio finished at ${state.liquidity_ratio}%.`,
+        metrics: {
+          "Deposit Base": formatCurrency(state.total_deposits),
+          "Liquidity Ratio": `${state.liquidity_ratio}%`,
+        },
+      },
+      capital_and_liquidity: {
+        title: "7. Capital and Liquidity Position",
+        content: `Capital Adequacy Ratio (CAR) is ${state.capital_adequacy_ratio}%, measured against the minimum Basel III statutory threshold of 12.0%. Liquidity ratio is ${state.liquidity_ratio}%.`,
+        status: state.capital_adequacy_ratio >= 12 ? "positive" : "negative",
+        metrics: {
+          "Capital Adequacy Ratio": `${state.capital_adequacy_ratio}%`,
+          "Minimum Required CAR": "12.0%",
+          "Liquidity Buffer": `${state.liquidity_ratio}%`,
+        },
+      },
+      employee_and_hr: {
+        title: "8. Employee and HR Performance",
+        content: `Workforce headcount closed at ${emps.length} personnel. Average staff morale is calculated at ${emps.length > 0 ? Math.round(emps.reduce((s, e) => s + e.morale, 0) / emps.length) : 0}% with an average productivity score of ${emps.length > 0 ? Math.round(emps.reduce((s, e) => s + e.productivity, 0) / emps.length) : 0}%.`,
+        metrics: {
+          "Total Headcount": emps.length,
+          "Average Morale": emps.length > 0 ? `${Math.round(emps.reduce((s, e) => s + e.morale, 0) / emps.length)}%` : "N/A",
+          "Active Staffing Ratio": emps.length > 0 ? "Staffed" : "Unstaffed - Vacancies Open",
+        },
+      },
+      department_performance: {
+        title: "9. Department Performance",
+        content: `All 10 divisions evaluated. Primary operational load handled across ${depts.filter((d) => d.employee_count > 0).length} staffed units. Operations and Credit have maintained strict supervisory discipline.`,
+        metrics: {
+          "Staffed Departments": depts.filter((d) => d.employee_count > 0).length,
+          "Total Departments": depts.length,
+        },
+      },
+      security_and_risk: {
+        title: "10. Security and Risk Assessment",
+        content: `Security tier maintained at ${sec.cybersecurity_tier}. Fraud monitoring protocol: ${sec.fraud_monitoring}. Physical security rated ${sec.physical_security}. Recorded security incidents this year: ${events.filter((e) => e.category === "Cyber" || e.category === "Fraud").length}.`,
+        metrics: {
+          "Cybersecurity Tier": sec.cybersecurity_tier,
+          "Fraud Protocol": sec.fraud_monitoring,
+          "Physical Security": sec.physical_security,
+          "Active Incidents": sec.active_incidents_count,
+        },
+      },
+      regulatory_and_compliance: {
+        title: "11. Regulatory and Compliance Status",
+        content: `The Central Bank and National Supervisory Authority assessed operations. Solvency standing is ${state.capital_adequacy_ratio >= 12 ? "Compliant" : "DEFICIENT (Corrective Action Required)"}. Internal control audit score: ${sec.last_audit_score || 85}/100.`,
+        status: state.capital_adequacy_ratio >= 12 ? "positive" : "negative",
+        metrics: {
+          "Supervisory Standing": state.capital_adequacy_ratio >= 12 ? "In Good Standing" : "Capital Warning",
+          "Audit Rating": `${sec.last_audit_score || 85}/100`,
+        },
+      },
+      major_decisions: {
+        title: "12. Major Decisions Taken",
+        content: `Throughout Year ${year}'s 5 quarters, management executed interest spread adjustments, managed hiring allocations, directed credit approvals, and maintained liquidity buffers against market shocks.`,
+        metrics: {
+          "Management Quarters": 5,
+        },
+      },
+      important_events: {
+        title: "13. Important Events and Incidents",
+        content: events.length > 0
+          ? `Encountered ${events.length} market and operational events during the year, including: ${events.map((e) => e.title).slice(0, 3).join(", ")}.`
+          : `Year ${year} concluded with stable market conditions and no catastrophic counterparty defaults.`,
+        metrics: {
+          "Events Recorded": events.length,
+          "Resolved": events.filter((e) => e.resolved).length,
+        },
+      },
+      achievements_and_failures: {
+        title: "14. Achievements and Failures",
+        content: `${state.net_profit >= 0 ? "Successfully posted positive bottom-line earnings while preserving capital." : "Experienced operational losses requiring capitalization attention."} ${state.capital_adequacy_ratio >= 14 ? "Tier-1 capital buffer remains robust." : "Capital adequacy requires close monitoring."}`,
+        status: state.net_profit >= 0 && state.capital_adequacy_ratio >= 12 ? "positive" : "warning",
+      },
+      recommendations_next_year: {
+        title: "15. Recommendations for the Next Year",
+        content: `For Year ${year + 1}, the Board advises: 1. Calibrate credit spreads against central bank benchmarks. 2. Maintain non-performing loans below 3.0%. 3. Ensure all critical banking departments have qualified department heads and staff. 4. Preserve cash reserves for liquidity stress periods.`,
+      },
+    },
+  };
+}
+
+function generateFinalFiveYearReport(bankId: string): FinalFiveYearReport {
+  const bank = getBank(bankId);
+  const state = getSimulationState(bankId);
+  const history = getQuarterHistory(bankId);
+  const loans = getLoans(bankId);
+
+  const cumulativeProfit = history.reduce((sum, h) => sum + h.net_profit, 0);
+  const peakAssets = history.reduce((max, h) => Math.max(max, h.assets), state.total_assets);
+  const totalLoansIssued = loans.length;
+
+  let grade: FinalFiveYearReport["mandate_grade"] = "B - Sound Institution";
+  if (state.capital_adequacy_ratio >= 15 && cumulativeProfit > 1000000 && state.npl_ratio <= 2.5) {
+    grade = "A - Exemplary";
+  } else if (state.capital_adequacy_ratio < 10 || cumulativeProfit < -5000000) {
+    grade = "Dismissed by Board";
+  } else if (state.capital_adequacy_ratio < 12 || state.npl_ratio > 5.0) {
+    grade = "C - Marginal";
+  }
+
+  return {
+    id: `final-rep-${bankId}`,
+    bank_id: bankId,
+    completed_at: new Date().toISOString(),
+    ceo_name: bank?.ceo_name || "Chief Executive Officer",
+    bank_name: bank?.name || "The Institution",
+    mandate_grade: grade,
+    summary: `The 5-Year Executive Mandate encompassing 25 operational quarters has concluded. Under Chairman & CEO ${bank?.ceo_name || "Chief Executive Officer"}, the bank achieved peak balance sheet assets of ${formatCurrency(peakAssets)} and cumulative net earnings of ${formatCurrency(cumulativeProfit)}. Final supervisory CAR ended at ${state.capital_adequacy_ratio}%.`,
+    cumulative_profit: cumulativeProfit,
+    peak_assets: peakAssets,
+    total_loans_issued: totalLoansIssued,
+    npl_final: state.npl_ratio,
+    final_car: state.capital_adequacy_ratio,
+    total_quarters_completed: 25,
+  };
+}
+
+// 13. REPORTS RETRIEVAL & MARKING
+export function getAnnualReports(bankId: string): AnnualReport[] {
+  const allReports = getStorage<Record<string, AnnualReport[]>>(KEY_ANNUAL_REPORTS, {});
+  return allReports[bankId] || [];
+}
+
+export function getAnnualReport(bankId: string, reportId: string): AnnualReport | null {
+  const reports = getAnnualReports(bankId);
+  return reports.find((r) => r.id === reportId) || null;
+}
+
+export function markReportAsRead(bankId: string, reportId: string): void {
+  const allReports = getStorage<Record<string, AnnualReport[]>>(KEY_ANNUAL_REPORTS, {});
+  const reports = allReports[bankId] || [];
+  const rep = reports.find((r) => r.id === reportId);
+  if (rep) {
+    rep.is_read = true;
+    setStorage(KEY_ANNUAL_REPORTS, allReports);
+  }
+}
+
+export function getUnreadReportsCount(bankId: string): number {
+  const reports = getAnnualReports(bankId);
+  return reports.filter((r) => !r.is_read).length;
+}
+
+export function getFinalReport(bankId: string): FinalFiveYearReport | null {
+  const allFinal = getStorage<Record<string, FinalFiveYearReport>>(KEY_FINAL_REPORTS, {});
+  return allFinal[bankId] || null;
+}
+
+// 14. SECURITY CONFIGURATION
+export function getSecurityConfig(bankId: string): BankSecurityConfig {
+  const allSec = getStorage<Record<string, BankSecurityConfig>>(KEY_SECURITY, {});
+  return (
+    allSec[bankId] || {
+      bank_id: bankId,
+      cybersecurity_tier: "Basic",
+      fraud_monitoring: "Manual",
+      physical_security: "Standard",
+      internal_controls: "Standard",
+      quarterly_security_budget: 25000,
+      active_incidents_count: 0,
+      last_audit_score: 80,
+    }
+  );
+}
+
+export function updateSecurityConfig(bankId: string, config: Partial<BankSecurityConfig>): void {
+  const allSec = getStorage<Record<string, BankSecurityConfig>>(KEY_SECURITY, {});
+  allSec[bankId] = { ...getSecurityConfig(bankId), ...config };
+  setStorage(KEY_SECURITY, allSec);
+}
+
+// 15. ADVANCE QUARTER SIMULATION (5 Quarters per Year, 5 Years total = 25 Quarters)
 export function advanceQuarterInStorage(
   bankId: string,
   decisions: {
@@ -738,48 +978,99 @@ export function advanceQuarterInStorage(
   const eco = getEconomicCondition(bankId);
   const history = getQuarterHistory(bankId);
 
-  // Advance Quarter & Year
-  let nextQuarter = (bank.current_quarter + 1) as 1 | 2 | 3 | 4;
-  let nextYear = bank.current_year;
-  if (nextQuarter > 4) {
-    nextQuarter = 1;
-    nextYear += 1;
-  }
-  bank.current_quarter = nextQuarter;
-  bank.current_year = nextYear;
-  bank.last_played_at = new Date().toISOString();
+  // Active workforce and loans
+  const emps = getEmployees(bankId);
+  const aiAgents = getAiAgents(bankId);
+  const activeLoans = getLoans(bankId).filter((l) => l.status === "Active");
+  const currentLoansOutstanding = activeLoans.reduce((sum, l) => sum + l.amount, 0);
 
-  // Financial Growth Calculations
-  const depositGrowthRate = 0.03 + (decisions.marketingBudget ? decisions.marketingBudget / 10000000 : 0.01);
-  const newDeposits = Math.round(state.total_deposits * (1 + depositGrowthRate));
-  const newLoans = Math.round(state.total_loans_outstanding * 1.025);
+  // 1. DYNAMIC CUSTOMER ONBOARDING & DEPOSIT INFLOW
+  const allCusts = getStorage<Record<string, Customer[]>>(KEY_CUSTOMERS, {});
+  const bankCusts = allCusts[bankId] || [];
+
+  const customerProspects = [
+    { name: "Apex Logistics Corp", cat: "Corporate" as const, acc: "Checking" as const, baseDep: 2800000, score: 790, risk: "Low" as const },
+    { name: "Green Valley Organics", cat: "Small Business" as const, acc: "Savings" as const, baseDep: 420000, score: 735, risk: "Low" as const },
+    { name: "Dr. Alistair Finch", cat: "Individual" as const, acc: "Fixed Deposit" as const, baseDep: 650000, score: 810, risk: "Low" as const },
+    { name: "Skyline Media Group", cat: "Medium Business" as const, acc: "Checking" as const, baseDep: 1250000, score: 685, risk: "Medium" as const },
+    { name: "Jessica Barnes", cat: "Individual" as const, acc: "Savings" as const, baseDep: 85000, score: 745, risk: "Low" as const },
+    { name: "Nordic Maritime Logistics", cat: "Corporate" as const, acc: "Checking" as const, baseDep: 3400000, score: 780, risk: "Low" as const },
+    { name: "Highland Biotech Labs", cat: "Medium Business" as const, acc: "Fixed Deposit" as const, baseDep: 950000, score: 720, risk: "Medium" as const },
+    { name: "Marcus Thorne & Associates", cat: "Small Business" as const, acc: "Checking" as const, baseDep: 310000, score: 760, risk: "Low" as const },
+    { name: "Eleanor Vance", cat: "Individual" as const, acc: "Savings" as const, baseDep: 110000, score: 790, risk: "Low" as const },
+    { name: "Vanguard Tech Innovations", cat: "Corporate" as const, acc: "Checking" as const, baseDep: 4200000, score: 760, risk: "Medium" as const },
+    { name: "Cobalt Engineering Co", cat: "Medium Business" as const, acc: "Checking" as const, baseDep: 780000, score: 695, risk: "Medium" as const },
+    { name: "Sophia Reynolds", cat: "Individual" as const, acc: "Fixed Deposit" as const, baseDep: 240000, score: 805, risk: "Low" as const },
+    { name: "Silverline Retail Holdings", cat: "Corporate" as const, acc: "Checking" as const, baseDep: 3100000, score: 740, risk: "Low" as const },
+    { name: "David K. Ross, Architect", cat: "Small Business" as const, acc: "Savings" as const, baseDep: 220000, score: 755, risk: "Low" as const },
+    { name: "Catherine Sterling", cat: "Individual" as const, acc: "Checking" as const, baseDep: 95000, score: 770, risk: "Low" as const },
+  ];
+
+  // Onboard 2-3 new customers each quarter based on market attractiveness
+  const existingNames = new Set(bankCusts.map((c) => c.name));
+  const newCandidates = customerProspects.filter((p) => !existingNames.has(p.name));
+  const toAdd = newCandidates.slice(0, bankCusts.length === 0 ? 3 : 2);
+
+  for (const cand of toAdd) {
+    const rateFactor = 1 + ((decisions.savingsRate || 2.5) - 2.5) * 0.05;
+    const initialBalance = Math.round(cand.baseDep * Math.max(0.7, rateFactor));
+    bankCusts.push({
+      id: `cust-${bankId}-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      bank_id: bankId,
+      name: cand.name,
+      category: cand.cat,
+      account_type: cand.acc,
+      deposit_balance: initialBalance,
+      credit_score: cand.score,
+      risk_category: cand.risk,
+      satisfaction: 85 + Math.floor(Math.random() * 12),
+      status: "Active",
+    });
+  }
+
+  // Organic growth on existing accounts
+  for (const c of bankCusts) {
+    c.deposit_balance = Math.round(c.deposit_balance * (1 + (Math.random() * 0.03 - 0.01)));
+  }
+  allCusts[bankId] = bankCusts;
+  setStorage(KEY_CUSTOMERS, allCusts);
+
+  // Compute total deposits directly from verified customer base
+  const newDeposits = bankCusts.reduce((sum, c) => sum + c.deposit_balance, 0);
+
+  // Loans growth (compounded if active loans exist)
+  const newLoans = Math.max(currentLoansOutstanding, Math.round(state.total_loans_outstanding * 1.02));
 
   // Interest Income & Expense
   const avgLoanRate = (eco.central_bank_rate + (decisions.personalLoanSpread || 4.5)) / 100;
   const avgDepositRate = (decisions.savingsRate || 2.5) / 100;
-  const quarterlyInterestIncome = Math.round((newLoans * avgLoanRate) / 4);
-  const quarterlyInterestExpense = Math.round((newDeposits * avgDepositRate) / 4);
+  const quarterlyInterestIncome = newLoans > 0 ? Math.round((newLoans * avgLoanRate) / 4) : 0;
+  const quarterlyInterestExpense = newDeposits > 0 ? Math.round((newDeposits * avgDepositRate) / 4) : 0;
   const netInterestIncome = quarterlyInterestIncome - quarterlyInterestExpense;
 
-  // Operational Expenses (salaries + AI + marketing + training)
-  const emps = getEmployees(bankId);
+  // Operational Expenses (salaries + AI + overhead + security)
+  const sec = getSecurityConfig(bankId);
   const totalSalaries = emps.reduce((acc, e) => acc + e.salary / 4, 0);
-  const aiAgents = getAiAgents(bankId);
   const totalAiCost = aiAgents.reduce((acc, a) => acc + a.monthly_cost * 3, 0);
-  const operatingExpenses = Math.round(totalSalaries + totalAiCost + (decisions.marketingBudget || 50000) + (decisions.trainingBudget || 20000));
+  const operatingExpenses = Math.round(
+    totalSalaries + totalAiCost + (decisions.marketingBudget || 30000) + (decisions.trainingBudget || 15000) + (sec.quarterly_security_budget || 25000) + 15000
+  );
 
-  // Net Profit
-  const netProfit = Math.round(netInterestIncome + 200000 - operatingExpenses - 40000);
+  // Fee Income directly from customer accounts & transaction volume
+  const feeIncome = bankCusts.length * 2500 + Math.round(newDeposits * 0.001);
+  const loanLossProvisions = Math.round(newLoans * 0.002);
+  const netProfit = Math.round(netInterestIncome + feeIncome - operatingExpenses - loanLossProvisions);
 
-  // Update Balance Sheet
-  const totalEquity = state.total_equity + netProfit;
+  // Update Balance Sheet (Assets = Liabilities + Equity)
+  const totalEquity = Math.max(1000000, state.total_equity + netProfit);
   const totalLiabilities = newDeposits;
   const totalAssets = totalLiabilities + totalEquity;
-  const cashReserves = totalAssets - newLoans;
+  const cashReserves = Math.max(0, totalAssets - newLoans);
 
-  // Ratios
-  const car = parseFloat(Math.max(12, Math.min(32, ((totalEquity / (newLoans * 0.8)) * 100))).toFixed(1));
-  const npl = parseFloat(Math.max(0.8, Math.min(6.5, state.npl_ratio + (Math.random() * 0.4 - 0.2))).toFixed(2));
+  // Solvency Ratios
+  const riskWeightedAssets = Math.max(1000000, newLoans * 0.8 + totalAssets * 0.1);
+  const car = parseFloat(Math.max(4, Math.min(60, (totalEquity / riskWeightedAssets) * 100)).toFixed(1));
+  const npl = parseFloat(Math.max(0.0, Math.min(8.5, state.npl_ratio + (Math.random() * 0.3 - 0.15))).toFixed(2));
   const roe = parseFloat(((netProfit * 4) / totalEquity * 100).toFixed(1));
   const roa = parseFloat(((netProfit * 4) / totalAssets * 100).toFixed(2));
 
@@ -791,15 +1082,65 @@ export function advanceQuarterInStorage(
   state.total_deposits = newDeposits;
   state.total_loans_outstanding = newLoans;
   state.net_interest_income = netInterestIncome;
+  state.non_interest_income = feeIncome;
   state.operating_expenses = operatingExpenses;
+  state.loan_loss_provisions = loanLossProvisions;
   state.net_profit = netProfit;
   state.capital_adequacy_ratio = car;
+  state.liquidity_ratio = parseFloat(Math.min(100, Math.max(15, (cashReserves / (newDeposits || 1)) * 100)).toFixed(1));
   state.npl_ratio = npl;
   state.roe = roe;
   state.roa = roa;
-  state.customer_satisfaction = Math.min(99, Math.max(65, state.customer_satisfaction + (decisions.trainingBudget ? 1 : 0)));
+  state.total_employees = emps.length;
+  state.total_ai_agents = aiAgents.length;
+  state.customer_satisfaction = Math.min(99, Math.max(60, state.customer_satisfaction + (decisions.trainingBudget ? 2 : 0)));
 
-  // Save updated objects
+  // Save current quarter in history
+  history.push({
+    year: bank.current_year,
+    quarter: bank.current_quarter,
+    assets: totalAssets,
+    liabilities: totalLiabilities,
+    equity: totalEquity,
+    deposits: newDeposits,
+    loans: newLoans,
+    net_interest_income: netInterestIncome,
+    net_profit: netProfit,
+    npl_ratio: npl,
+    car: car,
+  });
+  const allHist = getStorage<Record<string, QuarterHistory[]>>(KEY_HISTORY, {});
+  allHist[bankId] = history;
+  setStorage(KEY_HISTORY, allHist);
+
+  // Check if Quarter 5 is completed (Year-End)
+  const isYearEnd = bank.current_quarter === 5;
+  if (isYearEnd) {
+    // Generate Annual Report for this completed year
+    const annualReport = generateAnnualReportForYear(bankId, bank.current_year);
+    const allReports = getStorage<Record<string, AnnualReport[]>>(KEY_ANNUAL_REPORTS, {});
+    const bankReports = allReports[bankId] || [];
+    bankReports.push(annualReport);
+    allReports[bankId] = bankReports;
+    setStorage(KEY_ANNUAL_REPORTS, allReports);
+
+    if (bank.current_year >= 5) {
+      // 5-Year simulation complete (all 25 quarters completed!)
+      const finalReport = generateFinalFiveYearReport(bankId);
+      const allFinal = getStorage<Record<string, FinalFiveYearReport>>(KEY_FINAL_REPORTS, {});
+      allFinal[bankId] = finalReport;
+      setStorage(KEY_FINAL_REPORTS, allFinal);
+      bank.status = "completed";
+    } else {
+      bank.current_year = bank.current_year + 1;
+      bank.current_quarter = 1;
+    }
+  } else {
+    bank.current_quarter = (bank.current_quarter + 1) as 1 | 2 | 3 | 4 | 5;
+  }
+  bank.last_played_at = new Date().toISOString();
+
+  // Save bank & state
   const allBanks = getStorage<Record<string, Bank>>(KEY_BANKS, {});
   allBanks[bankId] = bank;
   setStorage(KEY_BANKS, allBanks);
@@ -816,43 +1157,85 @@ export function advanceQuarterInStorage(
     setStorage(KEY_SLOTS, slots);
   }
 
-  // Append history
-  history.push({
-    year: nextYear,
-    quarter: nextQuarter,
-    assets: totalAssets,
-    liabilities: totalLiabilities,
-    equity: totalEquity,
-    deposits: newDeposits,
-    loans: newLoans,
-    net_interest_income: netInterestIncome,
-    net_profit: netProfit,
-    npl_ratio: npl,
-    car: car,
-  });
-  const allHist = getStorage<Record<string, QuarterHistory[]>>(KEY_HISTORY, {});
-  allHist[bankId] = history;
-  setStorage(KEY_HISTORY, allHist);
+  // Refresh loan opportunities if pending queue is low
+  const allLoans = getStorage<Record<string, Loan[]>>(KEY_LOANS, {});
+  const bankLoans = allLoans[bankId] || [];
+  const pendingCount = bankLoans.filter((l) => l.status === "Pending").length;
+  if (pendingCount < 2) {
+    const loanNames = [
+      { name: "Apex Logistics Corp", cat: "Corporate" as const, amt: 1200000, rate: 6.8, term: 60, grade: "AA" as const, coll: 1800000 },
+      { name: "Dr. Alistair Finch", cat: "Mortgage" as const, amt: 480000, rate: 5.4, term: 240, grade: "AAA" as const, coll: 720000 },
+      { name: "Green Valley Organics", cat: "Business" as const, amt: 320000, rate: 7.9, term: 36, grade: "A" as const, coll: 450000 },
+      { name: "Skyline Media Group", cat: "Corporate" as const, amt: 950000, rate: 7.2, term: 48, grade: "BBB" as const, coll: 1200000 },
+      { name: "Elena Rostova", cat: "Personal" as const, amt: 45000, rate: 9.8, term: 24, grade: "A" as const, coll: 60000 },
+    ];
+    const candidate = loanNames[Math.floor(Math.random() * loanNames.length)];
+    bankLoans.push({
+      id: `loan-${bankId}-${Date.now()}`,
+      bank_id: bankId,
+      borrower_name: candidate.name,
+      category: candidate.cat,
+      amount: candidate.amt,
+      interest_rate: candidate.rate,
+      term_months: candidate.term,
+      remaining_months: candidate.term,
+      monthly_payment: Math.round((candidate.amt * (candidate.rate / 100)) / 12 + candidate.amt / candidate.term),
+      status: "Pending",
+      risk_grade: candidate.grade,
+      collateral_value: candidate.coll,
+    });
+    allLoans[bankId] = bankLoans;
+    setStorage(KEY_LOANS, allLoans);
+  }
 
-  // Occasionally trigger a crisis or resignation event
-  if (Math.random() < 0.4) {
+  // Generate dynamic quarterly event
+  if (Math.random() < 0.45) {
     const events = getEvents(bankId);
-    const newEvent: CrisisEvent = {
+    const eventCatalog = [
+      {
+        title: "Central Bank Capital Adequacy Audit",
+        cat: "Regulatory" as const,
+        sev: "Medium" as const,
+        desc: "National regulators are conducting an unannounced capital inspection on mid-tier institutions.",
+        options: [
+          { id: "opt-1", label: "Cooperate & Submit Internal Audit", cost: 15000, description: "Full transparency preserves supervisor trust.", reputation_impact: 3, risk_reduction: 10 },
+          { id: "opt-2", label: "Standard Filing", cost: 0, description: "Submit standard reports without special counsel.", reputation_impact: 0, risk_reduction: 0 },
+        ],
+      },
+      {
+        title: "DDoS Cyber Probe on API Gateway",
+        cat: "Cyber" as const,
+        sev: "High" as const,
+        desc: "Network monitoring flagged automated traffic spikes attempting credential stuffing against client portals.",
+        options: [
+          { id: "opt-1", label: "Activate Tier-3 Cloudflare Armor", cost: 25000, description: "Zero downtime mitigation with rate limiting.", reputation_impact: 2, risk_reduction: 20 },
+          { id: "opt-2", label: "Internal SOC Mitigation", cost: 5000, description: "Rely on in-house engineering team to blacklist IPs.", reputation_impact: -1, risk_reduction: 8 },
+        ],
+      },
+      {
+        title: "Large Corporate Deposit Inflow",
+        cat: "Liquidity" as const,
+        sev: "Low" as const,
+        desc: "A regional enterprise group seeks to park liquid liquidity in a 1-year fixed term deposit.",
+        options: [
+          { id: "opt-1", label: "Accept at Competitive Spread", cost: 0, description: "Boosts liquidity ratio and deposit footings.", reputation_impact: 2, risk_reduction: 5 },
+          { id: "opt-2", label: "Cap Deposit Size", cost: 0, description: "Avoid concentration risk in single corporate depositor.", reputation_impact: 0, risk_reduction: 0 },
+        ],
+      },
+    ];
+    const picked = eventCatalog[Math.floor(Math.random() * eventCatalog.length)];
+    events.push({
       id: `ev-${Date.now()}`,
       bank_id: bankId,
-      title: "Sudden Loan Officer Resignation",
-      severity: "Medium",
-      category: "Credit",
-      description: "A Senior Loan Officer has resigned to join a competitor. You must decide whether to hire an experienced human loan officer or deploy an AI Loan Assessment Agent.",
-      year: nextYear,
-      quarter: nextQuarter,
+      title: picked.title,
+      severity: picked.sev,
+      category: picked.cat,
+      description: picked.desc,
+      year: bank.current_year,
+      quarter: bank.current_quarter,
       resolved: false,
-      options: [
-        { id: "opt-1", label: "Hire Human Loan Officer", cost: 72000, description: "Recruit human with high judgment and strong client rapport.", reputation_impact: 2, risk_reduction: 5 },
-        { id: "opt-2", label: "Deploy AI Loan Agent", cost: 32000, description: "Deploy 8x faster AI scoring with lower cost but higher cyber risk.", reputation_impact: -1, risk_reduction: 2 },
-      ],
-    };
-    events.push(newEvent);
+      options: picked.options,
+    });
     const allEvs = getStorage<Record<string, CrisisEvent[]>>(KEY_EVENTS, {});
     allEvs[bankId] = events;
     setStorage(KEY_EVENTS, allEvs);
