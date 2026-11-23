@@ -246,27 +246,28 @@ export default function ReportsPage() {
               {/* 15-Section Report Briefcase */}
               {selectedReport && (
                 <Card className="border-blue-500/30 shadow-md overflow-hidden">
-                  <CardHeader className="border-b p-4 sm:p-6 pb-4 bg-muted/20">
-                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2 mb-2">
-                          <Badge variant="outline" className="text-blue-400 border-blue-500/30 text-xs py-0.5 px-2.5">
-                            Official Regulatory Filing · Year {selectedReport.year} (Calendar {selectedReport.calendar_year})
-                          </Badge>
-                          <Badge className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs py-0.5 px-2.5">
-                            Audited 5-Quarter Package
-                          </Badge>
-                        </div>
-                        <CardTitle className="text-lg sm:text-2xl font-bold tracking-tight text-foreground">
-                          {bank.name} — Year {selectedReport.year} Comprehensive Annual Report
-                        </CardTitle>
-                        <CardDescription className="text-xs sm:text-sm mt-1 text-muted-foreground leading-relaxed">
-                          Statutory CEO Address, Audited Financial Statements, Prudential Solvency Position, and Supervisory Disclosures.
-                        </CardDescription>
+                  <CardHeader className="border-b p-4 sm:p-6 pb-4 bg-muted/20 space-y-3 sm:space-y-4">
+                    {/* Top: Header Text & Regulatory Badges */}
+                    <div className="space-y-1.5">
+                      <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                        <Badge variant="outline" className="text-blue-400 border-blue-500/30 text-xs py-0.5 px-2.5">
+                          Official Regulatory Filing · Year {selectedReport.year} (Calendar {selectedReport.calendar_year})
+                        </Badge>
+                        <Badge className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs py-0.5 px-2.5">
+                          Audited 5-Quarter Package
+                        </Badge>
                       </div>
+                      <CardTitle className="text-lg sm:text-2xl font-bold tracking-tight text-foreground">
+                        {bank.name} — Year {selectedReport.year} Comprehensive Annual Report
+                      </CardTitle>
+                      <CardDescription className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                        Statutory CEO Address, Audited Financial Statements, Prudential Solvency Position, and Supervisory Disclosures.
+                      </CardDescription>
+                    </div>
 
-                      {/* Section Filter Pills */}
-                      <div className="flex items-center gap-1.5 bg-background/80 border p-1 rounded-xl text-xs shrink-0 self-start lg:self-center overflow-x-auto max-w-full">
+                    {/* Bottom: Dedicated Filter Bar placed underneath the text */}
+                    <div className="pt-2 border-t border-border/40">
+                      <div className="flex items-center gap-1.5 bg-background/90 border p-1 rounded-xl text-xs overflow-x-auto max-w-full w-fit">
                         <button
                           type="button"
                           onClick={() => setActiveSectionKey("all")}
