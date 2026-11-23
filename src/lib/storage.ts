@@ -520,6 +520,88 @@ export function getSimulationState(bankId: string): SimulationState {
   );
 }
 
+// 6b. UPDATE SIMULATION STATE
+export function updateSimulationState(bankId: string, stateUpdate: Partial<SimulationState>): SimulationState {
+  const allStates = getStorage<Record<string, SimulationState>>(KEY_STATES, {});
+  const current = getSimulationState(bankId);
+  const updated: SimulationState = {
+    ...current,
+    ...stateUpdate,
+    bank_id: bankId,
+  };
+  allStates[bankId] = updated;
+  setStorage(KEY_STATES, allStates);
+
+  // Sync with current quarter history if exists
+  const bank = getBank(bankId);
+  if (bank) {
+    const allHist = getStorage<Record<string, QuarterHistory[]>>(KEY_HISTORY, {});
+    const history = allHist[bankId] || [];
+    const existingHistIdx = history.findIndex((h) => h.year === bank.current_year && h.quarter === bank.current_quarter);
+    const histItem: QuarterHistory = {
+      year: bank.current_year,
+      quarter: bank.current_quarter,
+      assets: updated.total_assets,
+      liabilities: updated.total_liabilities,
+      equity: updated.total_equity,
+      deposits: updated.total_deposits,
+      loans: updated.total_loans_outstanding,
+      net_interest_income: updated.net_interest_income,
+      net_profit: updated.net_profit,
+      npl_ratio: updated.npl_ratio,
+      car: updated.capital_adequacy_ratio,
+    };
+    if (existingHistIdx >= 0) {
+      history[existingHistIdx] = histItem;
+    } else {
+      history.push(histItem);
+    }
+    allHist[bankId] = history;
+    setStorage(KEY_HISTORY, allHist);
+  }
+
+  return updated;
+}
+
+// 6c. UPDATE BANK DATA
+export function updateBank(bankId: string, updates: Partial<Bank>): Bank {
+  const allBanks = getStorage<Record<string, Bank>>(KEY_BANKS, {});
+  const current = getBank(bankId);
+  if (!current) throw new Error("Bank not found");
+  const updated: Bank = {
+    ...current,
+    ...updates,
+    updated_at: new Date().toISOString(),
+  };
+  allBanks[bankId] = updated;
+  setStorage(KEY_BANKS, allBanks);
+
+  // Sync slot if bank exists
+  const slots = getBankSlots();
+  const slotIdx = slots.findIndex((s) => s.bank_id === bankId);
+  if (slotIdx >= 0) {
+    slots[slotIdx].bank = updated;
+    slots[slotIdx].updated_at = updated.updated_at;
+    setStorage(KEY_SLOTS, slots);
+  }
+
+  return updated;
+}
+
+// 6d. UPDATE ECONOMIC CONDITIONS
+export function updateEconomicCondition(bankId: string, ecoUpdates: Partial<EconomicCondition>): EconomicCondition {
+  const allEco = getStorage<Record<string, EconomicCondition>>(KEY_ECONOMY, {});
+  const current = getEconomicCondition(bankId);
+  const updated: EconomicCondition = {
+    ...current,
+    ...ecoUpdates,
+    bank_id: bankId,
+  };
+  allEco[bankId] = updated;
+  setStorage(KEY_ECONOMY, allEco);
+  return updated;
+}
+
 // 7. GET DEPARTMENTS
 export function getDepartments(bankId: string): Department[] {
   const allDepts = getStorage<Record<string, Department[]>>(KEY_DEPARTMENTS, {});

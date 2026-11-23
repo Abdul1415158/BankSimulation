@@ -109,11 +109,11 @@ export default function ReportsPage() {
   }
 
   return (
-    <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 max-w-7xl mx-auto">
+    <div className="p-4 sm:p-8 space-y-6 max-w-[1550px] mx-auto w-full">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 border-b pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4">
         <div>
-          <div className="flex flex-wrap items-center gap-2 mb-1">
+          <div className="flex flex-wrap items-center gap-2 mb-1.5">
             <Badge variant="outline" className="text-xs text-blue-400 border-blue-500/30">
               Desk · Reports & Audits
             </Badge>
@@ -121,7 +121,7 @@ export default function ReportsPage() {
               Year {bank.current_year} · Quarter {bank.current_quarter} of 4
             </span>
           </div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight break-words">Financial & Regulatory Reporting Suite</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight break-words">Financial & Regulatory Reporting Suite</h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
             Audited Balance Sheets, Comprehensive Income (P&L), Human vs. AI Workforce Analytics, and Annual Reports.
           </p>
@@ -132,16 +132,16 @@ export default function ReportsPage() {
         </Button>
       </div>
 
-      {/* STICKY TOP TAB NAVIGATION BAR (Never gets pushed down!) */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md pt-2 pb-3 sm:pb-4 border-b -mx-3 px-3 sm:mx-0 sm:px-0">
-          <TabsList className="grid grid-cols-2 lg:grid-cols-4 w-full h-auto p-1.5 bg-muted/60 border border-border rounded-xl gap-1.5">
+      {/* TOP TAB NAVIGATION BAR (Roomy, Never overlaps, Clearly separated from Report Section) */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-6">
+        <div className="w-full pb-3 border-b border-border/60">
+          <TabsList className="grid grid-cols-2 lg:grid-cols-4 w-full h-auto p-1.5 bg-muted/40 border border-border/80 rounded-2xl gap-2 shadow-sm">
             <TabsTrigger
               value="annual-reports"
-              className="h-auto py-2.5 px-3 text-xs sm:text-sm font-semibold flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg min-w-0 overflow-hidden"
+              className="h-auto py-3 px-3 sm:px-5 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 rounded-xl transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md border border-transparent data-[state=active]:border-border/60"
             >
               <BookOpen className="size-4 text-blue-500 shrink-0" />
-              <span className="truncate">Annual Reports</span>
+              <span>Annual Reports</span>
               {annualReports.some((r) => !r.is_read) && (
                 <span className="bg-rose-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full ml-1 shrink-0 leading-none">
                   NEW
@@ -150,30 +150,30 @@ export default function ReportsPage() {
             </TabsTrigger>
             <TabsTrigger
               value="balance-sheet"
-              className="h-auto py-2.5 px-3 text-xs sm:text-sm font-semibold flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg min-w-0 overflow-hidden"
+              className="h-auto py-3 px-3 sm:px-5 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 rounded-xl transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md border border-transparent data-[state=active]:border-border/60"
             >
               <Scale className="size-4 text-cyan-500 shrink-0" />
-              <span className="truncate">Balance Sheet</span>
+              <span>Balance Sheet</span>
             </TabsTrigger>
             <TabsTrigger
               value="income-statement"
-              className="h-auto py-2.5 px-3 text-xs sm:text-sm font-semibold flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg min-w-0 overflow-hidden"
+              className="h-auto py-3 px-3 sm:px-5 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 rounded-xl transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md border border-transparent data-[state=active]:border-border/60"
             >
               <TrendingUp className="size-4 text-emerald-500 shrink-0" />
-              <span className="truncate">Profit & Loss</span>
+              <span>Profit & Loss</span>
             </TabsTrigger>
             <TabsTrigger
               value="history"
-              className="h-auto py-2.5 px-3 text-xs sm:text-sm font-semibold flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg min-w-0 overflow-hidden"
+              className="h-auto py-3 px-3 sm:px-5 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 rounded-xl transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-md border border-transparent data-[state=active]:border-border/60"
             >
               <Landmark className="size-4 text-purple-500 shrink-0" />
-              <span className="truncate">Quarterly Ledger</span>
+              <span>Quarterly Ledger</span>
             </TabsTrigger>
           </TabsList>
         </div>
 
         {/* 1. ANNUAL REPORTS TAB */}
-        <TabsContent value="annual-reports" className="space-y-6 pt-4">
+        <TabsContent value="annual-reports" className="space-y-6 pt-2">
           {/* FINAL 5-YEAR CLIMAX BANNER (Inside Annual Reports Tab) */}
           {finalReport && (
             <Card className="border-amber-500/40 bg-gradient-to-r from-amber-500/15 via-amber-500/5 to-transparent shadow-md overflow-hidden">
@@ -238,23 +238,28 @@ export default function ReportsPage() {
               </CardDescription>
             </Card>
           ) : (
-            <div className="space-y-4 sm:space-y-5">
-              {/* Year Selector Pills (Horizontally scrollable & touch-friendly on mobile) */}
-              <div className="p-2 bg-muted/30 border rounded-xl overflow-hidden">
+            <div className="space-y-6">
+              {/* Year Selector Pills (Spacious archive toolbar placed right below navigation) */}
+              <div className="p-3 sm:p-4 bg-muted/40 border border-border/80 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+                <div className="flex items-center gap-2 shrink-0">
+                  <Calendar className="size-4 text-blue-400" />
+                  <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                    Historical Annual Archives:
+                  </span>
+                </div>
                 <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 scrollbar-thin">
-                  <span className="text-xs font-bold text-muted-foreground uppercase px-2 shrink-0">Archive:</span>
                   {annualReports.map((rep) => (
                     <button
                       key={rep.id}
                       onClick={() => handleSelectReport(rep)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 shrink-0 whitespace-nowrap ${
+                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shrink-0 whitespace-nowrap ${
                         selectedReport?.id === rep.id
-                          ? "bg-blue-600 text-white shadow-sm"
-                          : "bg-background hover:bg-muted text-muted-foreground border"
+                          ? "bg-blue-600 text-white shadow-md ring-2 ring-blue-500/30"
+                          : "bg-background hover:bg-muted text-muted-foreground border border-border"
                       }`}
                     >
                       <span>Year {rep.year} Report</span>
-                      <span className="text-[10px] opacity-75">({rep.calendar_year})</span>
+                      <span className="text-[11px] opacity-75">({rep.calendar_year})</span>
                       {!rep.is_read && (
                         <span className="size-2 rounded-full bg-rose-400 animate-pulse ml-0.5" />
                       )}
@@ -263,46 +268,46 @@ export default function ReportsPage() {
                 </div>
               </div>
 
-              {/* 15-Section Report Briefcase */}
+              {/* 15-Section Report Briefcase (Expanded full-width area with generous margins) */}
               {selectedReport && (
-                <Card className="border-blue-500/30 shadow-md overflow-hidden">
-                  <CardHeader className="border-b p-4 sm:p-6 pb-4 bg-muted/20 space-y-3 sm:space-y-4">
+                <Card className="border-blue-500/30 shadow-lg overflow-hidden rounded-2xl bg-card/60">
+                  <CardHeader className="border-b p-5 sm:p-7 pb-5 bg-muted/20 space-y-4">
                     {/* Top: Header Text & Regulatory Badges */}
-                    <div className="space-y-1.5">
-                      <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                        <Badge variant="outline" className="text-blue-400 border-blue-500/30 text-xs py-0.5 px-2.5">
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="outline" className="text-blue-400 border-blue-500/30 text-xs py-0.5 px-3">
                           Official Regulatory Filing · Year {selectedReport.year} (Calendar {selectedReport.calendar_year})
                         </Badge>
-                        <Badge className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs py-0.5 px-2.5">
+                        <Badge className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs py-0.5 px-3">
                           Audited 4-Quarter Package
                         </Badge>
                       </div>
-                      <CardTitle className="text-lg sm:text-2xl font-bold tracking-tight text-foreground">
+                      <CardTitle className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
                         {bank.name} — Year {selectedReport.year} Comprehensive Annual Report
                       </CardTitle>
-                      <CardDescription className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                      <CardDescription className="text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-4xl">
                         Statutory CEO Address, Audited Financial Statements, Human vs. AI Workforce Strategy, and Solvency Disclosures.
                       </CardDescription>
                     </div>
 
-                    {/* Bottom: Dedicated Filter Bar placed underneath the text */}
-                    <div className="pt-2 border-t border-border/40">
-                      <div className="flex items-center gap-1.5 bg-background/90 border p-1 rounded-xl text-xs overflow-x-auto max-w-full w-fit">
+                    {/* Dedicated Filter Bar on its own clear row */}
+                    <div className="pt-3 border-t border-border/50">
+                      <div className="flex flex-wrap items-center gap-2 text-xs">
                         <button
                           type="button"
                           onClick={() => setActiveSectionKey("all")}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap ${
+                          className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
                             activeSectionKey === "all"
                               ? "bg-blue-600 text-white shadow-sm"
-                              : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                              : "text-muted-foreground hover:text-foreground hover:bg-muted/60 border border-transparent"
                           }`}
                         >
-                          All Sections
+                          All Sections (15)
                         </button>
                         <button
                           type="button"
                           onClick={() => setActiveSectionKey("ai")}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+                          className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 ${
                             activeSectionKey === "ai"
                               ? "bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-sm"
                               : "text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10 border border-cyan-500/30"
@@ -314,10 +319,10 @@ export default function ReportsPage() {
                         <button
                           type="button"
                           onClick={() => setActiveSectionKey("exec")}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap ${
+                          className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
                             activeSectionKey === "exec"
                               ? "bg-blue-600 text-white shadow-sm"
-                              : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                              : "text-muted-foreground hover:text-foreground hover:bg-muted/60 border border-transparent"
                           }`}
                         >
                           Financial & Executive
@@ -325,10 +330,10 @@ export default function ReportsPage() {
                         <button
                           type="button"
                           onClick={() => setActiveSectionKey("risk")}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap ${
+                          className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
                             activeSectionKey === "risk"
                               ? "bg-blue-600 text-white shadow-sm"
-                              : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                              : "text-muted-foreground hover:text-foreground hover:bg-muted/60 border border-transparent"
                           }`}
                         >
                           Risk & Regulation
@@ -514,8 +519,8 @@ export default function ReportsPage() {
                         </CardContent>
                       </Card>
                     )}
-                    {/* Render sections with responsive cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                    {/* Render sections with spacious, responsive cards */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6">
                       {Object.entries(selectedReport.sections)
                         .filter(([key]) => {
                           if (activeSectionKey === "ai") {
@@ -530,28 +535,28 @@ export default function ReportsPage() {
                           return true;
                         })
                         .map(([key, sec]: [string, AnnualReportSection]) => {
-                          const isFullWidth = key === "executive_summary" || key === "recommendations_next_year";
+                          const isFullWidth = key === "executive_summary" || key === "recommendations_next_year" || key === "human_vs_ai_workforce";
                           return (
                             <div
                               key={key}
-                              className={`p-4 sm:p-5 rounded-xl border bg-card/70 backdrop-blur-sm transition-all space-y-3 min-w-0 ${
-                                isFullWidth ? "md:col-span-2" : ""
+                              className={`p-6 sm:p-7 rounded-2xl border bg-card shadow-sm transition-all space-y-4 min-w-0 ${
+                                isFullWidth ? "lg:col-span-2" : ""
                               } ${
                                 sec.status === "negative"
                                   ? "border-rose-500/40 bg-rose-500/5"
                                   : sec.status === "warning"
                                   ? "border-amber-500/40 bg-amber-500/5"
-                                  : "border-border hover:border-blue-500/40"
+                                  : "border-border/80 hover:border-blue-500/50"
                               }`}
                             >
                               <div className="flex items-start sm:items-center justify-between gap-3">
-                                <h4 className="font-bold text-sm sm:text-base text-foreground leading-snug flex-1 min-w-0">
+                                <h4 className="font-bold text-base sm:text-lg text-foreground leading-snug flex-1 min-w-0">
                                   {sec.title}
                                 </h4>
                                 {sec.status && (
                                   <Badge
                                     variant="outline"
-                                    className={`text-[11px] font-semibold shrink-0 whitespace-nowrap px-2.5 py-0.5 ${
+                                    className={`text-xs font-semibold shrink-0 whitespace-nowrap px-3 py-1 ${
                                       sec.status === "positive"
                                         ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
                                         : sec.status === "warning"
@@ -560,22 +565,22 @@ export default function ReportsPage() {
                                     }`}
                                   >
                                     {sec.status === "positive" ? (
-                                      <CheckCircle2 className="size-3 mr-1 inline-block" />
+                                      <CheckCircle2 className="size-3.5 mr-1 inline-block" />
                                     ) : (
-                                      <AlertTriangle className="size-3 mr-1 inline-block" />
+                                      <AlertTriangle className="size-3.5 mr-1 inline-block" />
                                     )}
                                     {sec.status.toUpperCase()}
                                   </Badge>
                                 )}
                               </div>
 
-                              <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
+                              <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-line font-normal">
                                 {sec.content}
                               </p>
 
                               {sec.metrics && Object.keys(sec.metrics).length > 0 && (
                                 <div
-                                  className={`grid gap-2 pt-2 border-t border-border/60 text-xs ${
+                                  className={`grid gap-2.5 pt-3 border-t border-border/60 text-xs ${
                                     isFullWidth
                                       ? "grid-cols-2 md:grid-cols-4"
                                       : Object.keys(sec.metrics).length === 1
@@ -586,12 +591,12 @@ export default function ReportsPage() {
                                   {Object.entries(sec.metrics).map(([mKey, mVal]) => (
                                     <div
                                       key={mKey}
-                                      className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-muted/40 border border-border/50 min-w-0"
+                                      className="flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl bg-muted/40 border border-border/50 min-w-0"
                                     >
-                                      <span className="text-muted-foreground text-[11px] font-medium truncate shrink-0 max-w-[60%]">
+                                      <span className="text-muted-foreground text-xs font-medium truncate shrink-0 max-w-[65%]">
                                         {mKey}
                                       </span>
-                                      <span className="font-semibold text-foreground font-mono-numbers text-[11px] text-right truncate">
+                                      <span className="font-bold text-foreground font-mono-numbers text-xs sm:text-sm text-right truncate">
                                         {String(mVal)}
                                       </span>
                                     </div>
@@ -610,64 +615,64 @@ export default function ReportsPage() {
         </TabsContent>
 
         {/* 2. BALANCE SHEET TAB */}
-        <TabsContent value="balance-sheet" className="space-y-4 sm:space-y-6 pt-3 sm:pt-4">
-          <Card className="overflow-hidden">
-            <CardHeader className="border-b p-4 sm:p-6 pb-3 sm:pb-4">
-              <div className="flex items-start sm:items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
+        <TabsContent value="balance-sheet" className="space-y-6 pt-2">
+          <Card className="overflow-hidden rounded-2xl border-border/80 shadow-md">
+            <CardHeader className="border-b p-5 sm:p-6 pb-4 bg-muted/20">
+              <div className="flex items-start sm:items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
                 <div className="min-w-0">
-                  <CardTitle className="text-base sm:text-lg font-bold break-words">Consolidated Balance Sheet Statement</CardTitle>
-                  <CardDescription className="text-xs mt-0.5">
+                  <CardTitle className="text-lg sm:text-xl font-bold break-words">Consolidated Balance Sheet Statement</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm mt-0.5">
                     As of Year {bank.current_year}, Quarter {bank.current_quarter} of 4 · Assets = Liabilities + Shareholder Equity
                   </CardDescription>
                 </div>
-                <Badge variant="outline" className="text-xs bg-emerald-500/10 text-emerald-400 border-emerald-500/30 shrink-0 self-start sm:self-auto">
+                <Badge variant="outline" className="text-xs bg-emerald-500/10 text-emerald-400 border-emerald-500/30 shrink-0 self-start sm:self-auto py-1 px-3">
                   BALANCED
                 </Badge>
               </div>
             </CardHeader>
-            <CardContent className="p-4 sm:p-6 space-y-6">
-              <div className="grid md:grid-cols-2 gap-6 sm:gap-8">
+            <CardContent className="p-5 sm:p-8 space-y-6">
+              <div className="grid md:grid-cols-2 gap-8 sm:gap-12">
                 {/* Assets */}
-                <div className="space-y-3">
-                  <h3 className="font-bold text-xs sm:text-sm text-blue-400 uppercase tracking-wider border-b pb-2">
+                <div className="space-y-4">
+                  <h3 className="font-bold text-sm text-blue-400 uppercase tracking-wider border-b pb-2.5">
                     Total Assets
                   </h3>
-                  <div className="flex justify-between text-xs sm:text-sm py-1.5 border-b gap-2">
+                  <div className="flex justify-between text-xs sm:text-sm py-2 border-b gap-2">
                     <span className="text-muted-foreground">Cash & Central Bank Reserves</span>
                     <span className="font-mono-numbers font-medium shrink-0">{formatCurrency(Math.round(state.cash_reserves * 0.7), currency)}</span>
                   </div>
-                  <div className="flex justify-between text-xs sm:text-sm py-1.5 border-b gap-2">
+                  <div className="flex justify-between text-xs sm:text-sm py-2 border-b gap-2">
                     <span className="text-muted-foreground">Sovereign Treasury Securities</span>
                     <span className="font-mono-numbers font-medium shrink-0">{formatCurrency(Math.round(state.cash_reserves * 0.3), currency)}</span>
                   </div>
-                  <div className="flex justify-between text-xs sm:text-sm py-1.5 border-b gap-2">
+                  <div className="flex justify-between text-xs sm:text-sm py-2 border-b gap-2">
                     <span className="text-muted-foreground">Gross Loan Portfolio</span>
                     <span className="font-mono-numbers font-medium shrink-0">{formatCurrency(state.total_loans_outstanding, currency)}</span>
                   </div>
-                  <div className="flex justify-between text-sm sm:text-base font-bold pt-2 text-foreground gap-2">
+                  <div className="flex justify-between text-base sm:text-lg font-bold pt-3 text-foreground gap-2">
                     <span>Total Assets</span>
                     <span className="font-mono-numbers text-blue-400 shrink-0">{formatCurrency(state.total_assets, currency)}</span>
                   </div>
                 </div>
 
                 {/* Liabilities & Equity */}
-                <div className="space-y-3">
-                  <h3 className="font-bold text-xs sm:text-sm text-cyan-400 uppercase tracking-wider border-b pb-2">
+                <div className="space-y-4">
+                  <h3 className="font-bold text-sm text-cyan-400 uppercase tracking-wider border-b pb-2.5">
                     Liabilities & Shareholder Equity
                   </h3>
-                  <div className="flex justify-between text-xs sm:text-sm py-1.5 border-b gap-2">
+                  <div className="flex justify-between text-xs sm:text-sm py-2 border-b gap-2">
                     <span className="text-muted-foreground">Customer Deposit Liabilities</span>
                     <span className="font-mono-numbers font-medium shrink-0">{formatCurrency(state.total_deposits, currency)}</span>
                   </div>
-                  <div className="flex justify-between text-xs sm:text-sm py-1.5 border-b gap-2">
+                  <div className="flex justify-between text-xs sm:text-sm py-2 border-b gap-2">
                     <span className="text-muted-foreground">Paid-in Charter Capital</span>
                     <span className="font-mono-numbers font-medium shrink-0">{formatCurrency(bank.starting_capital, currency)}</span>
                   </div>
-                  <div className="flex justify-between text-xs sm:text-sm py-1.5 border-b gap-2">
+                  <div className="flex justify-between text-xs sm:text-sm py-2 border-b gap-2">
                     <span className="text-muted-foreground">Retained Earnings Buffer</span>
                     <span className="font-mono-numbers font-medium shrink-0">{formatCurrency(Math.max(0, state.total_equity - bank.starting_capital), currency)}</span>
                   </div>
-                  <div className="flex justify-between text-sm sm:text-base font-bold pt-2 text-foreground gap-2">
+                  <div className="flex justify-between text-base sm:text-lg font-bold pt-3 text-foreground gap-2">
                     <span>Total Liabilities & Equity</span>
                     <span className="font-mono-numbers text-cyan-400 shrink-0">{formatCurrency(state.total_liabilities + state.total_equity, currency)}</span>
                   </div>
@@ -678,30 +683,30 @@ export default function ReportsPage() {
         </TabsContent>
 
         {/* 3. PROFIT & LOSS TAB */}
-        <TabsContent value="income-statement" className="space-y-4 sm:space-y-6 pt-3 sm:pt-4">
-          <Card className="overflow-hidden">
-            <CardHeader className="border-b p-4 sm:p-6 pb-3 sm:pb-4">
-              <CardTitle className="text-base sm:text-lg font-bold break-words">Statement of Comprehensive Income (P&L)</CardTitle>
-              <CardDescription className="text-xs mt-0.5">Quarterly financial performance, operational margins, and net earnings.</CardDescription>
+        <TabsContent value="income-statement" className="space-y-6 pt-2">
+          <Card className="overflow-hidden rounded-2xl border-border/80 shadow-md">
+            <CardHeader className="border-b p-5 sm:p-6 pb-4 bg-muted/20">
+              <CardTitle className="text-lg sm:text-xl font-bold break-words">Statement of Comprehensive Income (P&L)</CardTitle>
+              <CardDescription className="text-xs sm:text-sm mt-0.5">Quarterly financial performance, operational margins, and net earnings.</CardDescription>
             </CardHeader>
-            <CardContent className="p-4 sm:p-6 space-y-4 max-w-2xl">
-              <div className="flex justify-between text-xs sm:text-sm py-1.5 border-b gap-2">
+            <CardContent className="p-5 sm:p-8 space-y-4 max-w-3xl">
+              <div className="flex justify-between text-xs sm:text-sm py-2 border-b gap-2">
                 <span className="text-muted-foreground">Net Interest Income (NII)</span>
                 <span className="font-mono-numbers font-semibold text-emerald-400 shrink-0">{formatCurrency(state.net_interest_income, currency)}</span>
               </div>
-              <div className="flex justify-between text-xs sm:text-sm py-1.5 border-b gap-2">
+              <div className="flex justify-between text-xs sm:text-sm py-2 border-b gap-2">
                 <span className="text-muted-foreground">Non-Interest Fees & Commissions</span>
                 <span className="font-mono-numbers font-semibold text-emerald-400 shrink-0">{formatCurrency(state.non_interest_income, currency)}</span>
               </div>
-              <div className="flex justify-between text-xs sm:text-sm py-1.5 border-b gap-2">
+              <div className="flex justify-between text-xs sm:text-sm py-2 border-b gap-2">
                 <span className="text-muted-foreground">Operating Expenses (Salaries, AI, Security, IT)</span>
                 <span className="font-mono-numbers font-semibold text-rose-400 shrink-0">-{formatCurrency(state.operating_expenses, currency)}</span>
               </div>
-              <div className="flex justify-between text-xs sm:text-sm py-1.5 border-b gap-2">
+              <div className="flex justify-between text-xs sm:text-sm py-2 border-b gap-2">
                 <span className="text-muted-foreground">Loan Loss Provisions</span>
                 <span className="font-mono-numbers font-semibold text-rose-400 shrink-0">-{formatCurrency(state.loan_loss_provisions, currency)}</span>
               </div>
-              <div className="flex justify-between text-base sm:text-lg font-bold pt-3 border-t-2 border-foreground gap-2">
+              <div className="flex justify-between text-base sm:text-lg font-bold pt-4 border-t-2 border-foreground gap-2">
                 <span>Net Quarterly Profit / Loss</span>
                 <span className={`font-mono-numbers shrink-0 ${state.net_profit >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
                   {formatCurrency(state.net_profit, currency)}
@@ -712,43 +717,43 @@ export default function ReportsPage() {
         </TabsContent>
 
         {/* 4. QUARTERLY HISTORY TAB */}
-        <TabsContent value="history" className="space-y-4 sm:space-y-6 pt-3 sm:pt-4">
-          <Card className="overflow-hidden">
-            <CardHeader className="border-b p-4 sm:p-6 pb-3 sm:pb-4 flex flex-row items-center justify-between gap-2">
+        <TabsContent value="history" className="space-y-6 pt-2">
+          <Card className="overflow-hidden rounded-2xl border-border/80 shadow-md">
+            <CardHeader className="border-b p-5 sm:p-6 pb-4 bg-muted/20 flex flex-row items-center justify-between gap-3">
               <div>
-                <CardTitle className="text-base sm:text-lg font-bold break-words">Quarterly Financial Ledger</CardTitle>
-                <CardDescription className="text-xs mt-0.5">Complete trajectory across all simulated quarters (4 Quarters per Year, 20 Quarters max).</CardDescription>
+                <CardTitle className="text-lg sm:text-xl font-bold break-words">Quarterly Financial Ledger</CardTitle>
+                <CardDescription className="text-xs sm:text-sm mt-0.5">Complete trajectory across all simulated quarters (4 Quarters per Year, 20 Quarters max).</CardDescription>
               </div>
-              <Badge variant="outline" className="text-xs font-mono shrink-0">
+              <Badge variant="outline" className="text-xs font-mono shrink-0 py-1 px-3">
                 {history.length} Quarters Recorded
               </Badge>
             </CardHeader>
             <CardContent className="p-0">
-              <div className="overflow-x-auto scrollbar-thin max-h-[600px] overflow-y-auto">
-                <table className="w-full text-xs sm:text-sm min-w-[620px]">
+              <div className="overflow-x-auto scrollbar-thin max-h-[650px] overflow-y-auto">
+                <table className="w-full text-xs sm:text-sm min-w-[650px]">
                   <thead className="bg-muted/90 sticky top-0 border-b text-[11px] sm:text-xs text-muted-foreground uppercase backdrop-blur-sm z-10">
                     <tr>
-                      <th className="px-3 sm:px-4 py-2.5 sm:py-3 text-left">Period</th>
-                      <th className="px-3 sm:px-4 py-2.5 sm:py-3 text-right">Assets</th>
-                      <th className="px-3 sm:px-4 py-2.5 sm:py-3 text-right">Deposits</th>
-                      <th className="px-3 sm:px-4 py-2.5 sm:py-3 text-right">Loans</th>
-                      <th className="px-3 sm:px-4 py-2.5 sm:py-3 text-right">Net Profit</th>
-                      <th className="px-3 sm:px-4 py-2.5 sm:py-3 text-center">NPL</th>
-                      <th className="px-3 sm:px-4 py-2.5 sm:py-3 text-center">CAR</th>
+                      <th className="px-4 py-3 text-left">Period</th>
+                      <th className="px-4 py-3 text-right">Assets</th>
+                      <th className="px-4 py-3 text-right">Deposits</th>
+                      <th className="px-4 py-3 text-right">Loans</th>
+                      <th className="px-4 py-3 text-right">Net Profit</th>
+                      <th className="px-4 py-3 text-center">NPL</th>
+                      <th className="px-4 py-3 text-center">CAR</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
                     {history.map((h, i) => (
                       <tr key={`${h.year}-q${h.quarter}-${i}`} className="hover:bg-muted/20">
-                        <td className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold whitespace-nowrap">Year {h.year} · Q{h.quarter}</td>
-                        <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-right font-mono-numbers">{formatCurrency(h.assets, currency, true)}</td>
-                        <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-right font-mono-numbers">{formatCurrency(h.deposits, currency, true)}</td>
-                        <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-right font-mono-numbers">{formatCurrency(h.loans, currency, true)}</td>
-                        <td className={`px-3 sm:px-4 py-2.5 sm:py-3 text-right font-mono-numbers font-semibold ${h.net_profit >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                        <td className="px-4 py-3 font-semibold whitespace-nowrap">Year {h.year} · Q{h.quarter}</td>
+                        <td className="px-4 py-3 text-right font-mono-numbers">{formatCurrency(h.assets, currency, true)}</td>
+                        <td className="px-4 py-3 text-right font-mono-numbers">{formatCurrency(h.deposits, currency, true)}</td>
+                        <td className="px-4 py-3 text-right font-mono-numbers">{formatCurrency(h.loans, currency, true)}</td>
+                        <td className={`px-4 py-3 text-right font-mono-numbers font-semibold ${h.net_profit >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
                           {formatCurrency(h.net_profit, currency, true)}
                         </td>
-                        <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-mono-numbers">{h.npl_ratio}%</td>
-                        <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-center font-mono-numbers font-medium text-blue-400">{h.car}%</td>
+                        <td className="px-4 py-3 text-center font-mono-numbers">{h.npl_ratio}%</td>
+                        <td className="px-4 py-3 text-center font-mono-numbers font-medium text-blue-400">{h.car}%</td>
                       </tr>
                     ))}
                   </tbody>
