@@ -153,7 +153,7 @@ function CreateBankFormContent() {
                 <div className="space-y-2">
                   <Label>CEO / Chairman's Full Name *</Label>
                   <Input
-                    placeholder="e.g., Hafiz Uzair"
+                    placeholder="e.g., Jhon"
                     value={form.ceo_name}
                     onChange={(e) => update({ ceo_name: e.target.value })}
                     maxLength={50}
