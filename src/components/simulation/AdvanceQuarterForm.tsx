@@ -12,6 +12,7 @@ import {
   getBank,
   getSimulationState,
   getCustomers,
+  getFinalReport,
   SimulationState,
 } from "@/lib/storage";
 import { formatCurrency, formatPercent } from "@/lib/formatters";
@@ -89,9 +90,22 @@ export function AdvanceQuarterForm({
     setCustomerCount(getCustomers(bankId).length);
   }, [bankId]);
 
+  // Check if simulation mandate (all 25 quarters / 5 years) is completed
+  const currentBank = getBank(bankId);
+  const isMandateComplete = Boolean(
+    currentBank?.status === "completed" ||
+    (activeYear >= 5 && activeQuarter >= 5 && getFinalReport(bankId))
+  );
+
   // Single step advancement logic
   const stepAdvance = (isMonthlyOnly = false) => {
     try {
+      const bCheck = getBank(bankId);
+      if (bCheck?.status === "completed" || (activeYear >= 5 && activeQuarter >= 5 && getFinalReport(bankId))) {
+        setIsPlaying(false);
+        return null;
+      }
+
       const { bank, state } = advanceQuarterInStorage(bankId, {
         savingsRate: retailDepositRate,
         personalLoanSpread: retailLendingRate,
@@ -257,6 +271,26 @@ export function AdvanceQuarterForm({
       {/* TIME & SIMULATION CONTROLS BAR (Play/Resume + 1x, 3x, 10x, Boost) */}
       <Card className="border-blue-500/30 bg-muted/20 shadow-md">
         <CardContent className="p-4 space-y-4">
+          {isMandateComplete && (
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-amber-500/15 border border-amber-500/40 rounded-xl text-xs">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="size-2 rounded-full bg-amber-400 shrink-0" />
+                <span className="text-foreground">
+                  <strong className="text-amber-400 font-bold">5-Year Executive Mandate Concluded:</strong> All 25 simulated quarters are finished. Controls are locked to protect official audit filings.
+                </span>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                className="bg-amber-500 hover:bg-amber-600 text-black font-bold shrink-0 text-xs gap-1.5 self-start sm:self-auto"
+                onClick={() => router.push(`/bank/${bankId}/reports`)}
+              >
+                <span>View Annual Reports</span>
+                <ArrowRight className="size-3.5" />
+              </Button>
+            </div>
+          )}
+
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             {/* Play/Pause & Speed Selection */}
             <div className="flex items-center gap-3">
@@ -264,6 +298,7 @@ export function AdvanceQuarterForm({
                 type="button"
                 variant={isPlaying ? "destructive" : "default"}
                 size="sm"
+                disabled={isMandateComplete}
                 onClick={() => setIsPlaying(!isPlaying)}
                 className={`gap-1.5 font-bold ${
                   !isPlaying
@@ -287,6 +322,7 @@ export function AdvanceQuarterForm({
                   <button
                     type="button"
                     key={spd}
+                    disabled={isMandateComplete}
                     onClick={() => setSimSpeed(spd)}
                     className={`px-2.5 py-1 rounded transition-colors ${
                       simSpeed === spd
@@ -307,7 +343,7 @@ export function AdvanceQuarterForm({
                 variant="outline"
                 size="sm"
                 onClick={() => stepAdvance(true)}
-                disabled={loading || isPlaying}
+                disabled={loading || isPlaying || isMandateComplete}
                 className="gap-1 text-xs"
               >
                 <Calendar className="size-3.5 text-blue-400" /> Advance Month (30d)
@@ -315,7 +351,7 @@ export function AdvanceQuarterForm({
               <Button
                 type="submit"
                 size="sm"
-                disabled={loading || isPlaying}
+                disabled={loading || isPlaying || isMandateComplete}
                 className="bg-blue-600 hover:bg-blue-700 text-white gap-1 text-xs"
               >
                 <Zap className="size-3.5" /> Advance Quarter
@@ -564,13 +600,18 @@ export function AdvanceQuarterForm({
         <Button
           type="submit"
           size="lg"
-          disabled={loading || isPlaying}
+          disabled={loading || isPlaying || isMandateComplete}
           className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold px-8"
         >
           {loading ? (
             <>
               <Loader2 className="size-4 mr-2 animate-spin" />
               Simulating Quarter...
+            </>
+          ) : isMandateComplete ? (
+            <>
+              <CheckCircle2 className="size-4 mr-2 text-emerald-300" />
+              5-Year Mandate Concluded (All 25 Quarters Filed)
             </>
           ) : (
             <>

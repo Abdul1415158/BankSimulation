@@ -707,7 +707,12 @@ export function updateBankSettings(bankId: string, settings: Partial<BankSetting
 
 export function getQuarterHistory(bankId: string): QuarterHistory[] {
   const allHist = getStorage<Record<string, QuarterHistory[]>>(KEY_HISTORY, {});
-  return allHist[bankId] || [];
+  const raw = allHist[bankId] || [];
+  const map = new Map<string, QuarterHistory>();
+  for (const h of raw) {
+    map.set(`y${h.year}-q${h.quarter}`, h);
+  }
+  return Array.from(map.values()).sort((a, b) => a.year * 10 + a.quarter - (b.year * 10 + b.quarter));
 }
 
 // 12. ANNUAL & FINAL REPORTS GENERATORS
@@ -908,7 +913,15 @@ function generateFinalFiveYearReport(bankId: string): FinalFiveYearReport {
 // 13. REPORTS RETRIEVAL & MARKING
 export function getAnnualReports(bankId: string): AnnualReport[] {
   const allReports = getStorage<Record<string, AnnualReport[]>>(KEY_ANNUAL_REPORTS, {});
-  return allReports[bankId] || [];
+  const raw = allReports[bankId] || [];
+  // Deduplicate by year (1 to 5) so no duplicates ever distort the UI
+  const map = new Map<number, AnnualReport>();
+  for (const r of raw) {
+    if (!map.has(r.year) || r.id >= (map.get(r.year)?.id || "")) {
+      map.set(r.year, r);
+    }
+  }
+  return Array.from(map.values()).sort((a, b) => a.year - b.year);
 }
 
 export function getAnnualReport(bankId: string, reportId: string): AnnualReport | null {
@@ -975,6 +988,13 @@ export function advanceQuarterInStorage(
   if (!bank) throw new Error("Bank not found");
 
   const state = getSimulationState(bankId);
+
+  // If 5-year simulation mandate is already completed, lock and do not corrupt data
+  if (bank.status === "completed" || (bank.current_year >= 5 && bank.current_quarter === 5 && getFinalReport(bankId))) {
+    bank.status = "completed";
+    return { bank, state };
+  }
+
   const eco = getEconomicCondition(bankId);
   const history = getQuarterHistory(bankId);
 
@@ -1095,8 +1115,9 @@ export function advanceQuarterInStorage(
   state.total_ai_agents = aiAgents.length;
   state.customer_satisfaction = Math.min(99, Math.max(60, state.customer_satisfaction + (decisions.trainingBudget ? 2 : 0)));
 
-  // Save current quarter in history
-  history.push({
+  // Save current quarter in history (deduplicated by year and quarter)
+  const existingHistIdx = history.findIndex((h) => h.year === bank.current_year && h.quarter === bank.current_quarter);
+  const histItem: QuarterHistory = {
     year: bank.current_year,
     quarter: bank.current_quarter,
     assets: totalAssets,
@@ -1108,7 +1129,12 @@ export function advanceQuarterInStorage(
     net_profit: netProfit,
     npl_ratio: npl,
     car: car,
-  });
+  };
+  if (existingHistIdx >= 0) {
+    history[existingHistIdx] = histItem;
+  } else {
+    history.push(histItem);
+  }
   const allHist = getStorage<Record<string, QuarterHistory[]>>(KEY_HISTORY, {});
   allHist[bankId] = history;
   setStorage(KEY_HISTORY, allHist);
@@ -1120,7 +1146,14 @@ export function advanceQuarterInStorage(
     const annualReport = generateAnnualReportForYear(bankId, bank.current_year);
     const allReports = getStorage<Record<string, AnnualReport[]>>(KEY_ANNUAL_REPORTS, {});
     const bankReports = allReports[bankId] || [];
-    bankReports.push(annualReport);
+    
+    // Deduplicate by year (replace if already exists, otherwise push)
+    const existingRepIdx = bankReports.findIndex((r) => r.year === bank.current_year);
+    if (existingRepIdx >= 0) {
+      bankReports[existingRepIdx] = annualReport;
+    } else {
+      bankReports.push(annualReport);
+    }
     allReports[bankId] = bankReports;
     setStorage(KEY_ANNUAL_REPORTS, allReports);
 

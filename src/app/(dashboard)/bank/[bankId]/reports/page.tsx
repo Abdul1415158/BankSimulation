@@ -45,17 +45,21 @@ export default function ReportsPage() {
   const [finalReport, setFinalReport] = useState<FinalFiveYearReport | null>(null);
   const [selectedReport, setSelectedReport] = useState<AnnualReport | null>(null);
   const [activeSectionKey, setActiveSectionKey] = useState<string>("all");
+  const [activeTab, setActiveTab] = useState<string>("annual-reports");
 
   useEffect(() => {
     if (!bankId) return;
     setBank(getBank(bankId));
     setState(getSimulationState(bankId));
-    setHistory(getQuarterHistory(bankId));
+    const hist = getQuarterHistory(bankId);
+    setHistory(hist);
     const reps = getAnnualReports(bankId);
     setAnnualReports(reps);
     setFinalReport(getFinalReport(bankId));
     if (reps.length > 0) {
-      setSelectedReport(reps[reps.length - 1]);
+      setSelectedReport((prev) => (prev ? reps.find((r) => r.year === prev.year) || reps[reps.length - 1] : reps[reps.length - 1]));
+    } else {
+      setActiveTab("balance-sheet");
     }
   }, [bankId]);
 
@@ -121,7 +125,7 @@ export default function ReportsPage() {
       </div>
 
       {/* STICKY TOP TAB NAVIGATION BAR (Never gets pushed down!) */}
-      <Tabs defaultValue={annualReports.length > 0 ? "annual-reports" : "balance-sheet"} className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md pt-2 pb-3 sm:pb-4 border-b -mx-3 px-3 sm:mx-0 sm:px-0">
           <TabsList className="grid grid-cols-2 sm:grid-cols-4 w-full h-auto p-1 bg-muted/60 border border-border rounded-xl gap-1">
             <TabsTrigger value="annual-reports" className="gap-1 sm:gap-1.5 py-2 sm:py-2.5 px-2 text-xs sm:text-sm font-semibold flex items-center justify-center">
@@ -395,15 +399,15 @@ export default function ReportsPage() {
                   </h3>
                   <div className="flex justify-between text-xs sm:text-sm py-1.5 border-b gap-2">
                     <span className="text-muted-foreground">Cash & Central Bank Reserves</span>
-                    <span className="font-mono-numbers font-medium shrink-0">{formatCurrency(state.cash_reserves, currency)}</span>
+                    <span className="font-mono-numbers font-medium shrink-0">{formatCurrency(Math.round(state.cash_reserves * 0.7), currency)}</span>
+                  </div>
+                  <div className="flex justify-between text-xs sm:text-sm py-1.5 border-b gap-2">
+                    <span className="text-muted-foreground">Sovereign Treasury Securities</span>
+                    <span className="font-mono-numbers font-medium shrink-0">{formatCurrency(Math.round(state.cash_reserves * 0.3), currency)}</span>
                   </div>
                   <div className="flex justify-between text-xs sm:text-sm py-1.5 border-b gap-2">
                     <span className="text-muted-foreground">Gross Loan Portfolio</span>
                     <span className="font-mono-numbers font-medium shrink-0">{formatCurrency(state.total_loans_outstanding, currency)}</span>
-                  </div>
-                  <div className="flex justify-between text-xs sm:text-sm py-1.5 border-b gap-2">
-                    <span className="text-muted-foreground">Sovereign Treasury Securities</span>
-                    <span className="font-mono-numbers font-medium shrink-0">{formatCurrency(state.cash_reserves * 0.3, currency)}</span>
                   </div>
                   <div className="flex justify-between text-sm sm:text-base font-bold pt-2 text-foreground gap-2">
                     <span>Total Assets</span>
@@ -426,7 +430,7 @@ export default function ReportsPage() {
                   </div>
                   <div className="flex justify-between text-xs sm:text-sm py-1.5 border-b gap-2">
                     <span className="text-muted-foreground">Retained Earnings Buffer</span>
-                    <span className="font-mono-numbers font-medium shrink-0">{formatCurrency(state.total_equity - bank.starting_capital, currency)}</span>
+                    <span className="font-mono-numbers font-medium shrink-0">{formatCurrency(Math.max(0, state.total_equity - bank.starting_capital), currency)}</span>
                   </div>
                   <div className="flex justify-between text-sm sm:text-base font-bold pt-2 text-foreground gap-2">
                     <span>Total Liabilities & Equity</span>
@@ -475,14 +479,19 @@ export default function ReportsPage() {
         {/* 4. QUARTERLY HISTORY TAB */}
         <TabsContent value="history" className="space-y-4 sm:space-y-6 pt-3 sm:pt-4">
           <Card className="overflow-hidden">
-            <CardHeader className="border-b p-4 sm:p-6 pb-3 sm:pb-4">
-              <CardTitle className="text-base sm:text-lg font-bold break-words">Quarterly Financial Ledger</CardTitle>
-              <CardDescription className="text-xs mt-0.5">Complete trajectory across all simulated quarters (5 Quarters per Year).</CardDescription>
+            <CardHeader className="border-b p-4 sm:p-6 pb-3 sm:pb-4 flex flex-row items-center justify-between gap-2">
+              <div>
+                <CardTitle className="text-base sm:text-lg font-bold break-words">Quarterly Financial Ledger</CardTitle>
+                <CardDescription className="text-xs mt-0.5">Complete trajectory across all simulated quarters (5 Quarters per Year, 25 Quarters max).</CardDescription>
+              </div>
+              <Badge variant="outline" className="text-xs font-mono shrink-0">
+                {history.length} Quarters Recorded
+              </Badge>
             </CardHeader>
             <CardContent className="p-0">
-              <div className="overflow-x-auto scrollbar-thin">
+              <div className="overflow-x-auto scrollbar-thin max-h-[600px] overflow-y-auto">
                 <table className="w-full text-xs sm:text-sm min-w-[620px]">
-                  <thead className="bg-muted/50 border-b text-[11px] sm:text-xs text-muted-foreground uppercase">
+                  <thead className="bg-muted/90 sticky top-0 border-b text-[11px] sm:text-xs text-muted-foreground uppercase backdrop-blur-sm z-10">
                     <tr>
                       <th className="px-3 sm:px-4 py-2.5 sm:py-3 text-left">Period</th>
                       <th className="px-3 sm:px-4 py-2.5 sm:py-3 text-right">Assets</th>
@@ -495,7 +504,7 @@ export default function ReportsPage() {
                   </thead>
                   <tbody className="divide-y divide-border">
                     {history.map((h, i) => (
-                      <tr key={i} className="hover:bg-muted/20">
+                      <tr key={`${h.year}-q${h.quarter}-${i}`} className="hover:bg-muted/20">
                         <td className="px-3 sm:px-4 py-2.5 sm:py-3 font-semibold whitespace-nowrap">Year {h.year} · Q{h.quarter}</td>
                         <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-right font-mono-numbers">{formatCurrency(h.assets, currency, true)}</td>
                         <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-right font-mono-numbers">{formatCurrency(h.deposits, currency, true)}</td>
