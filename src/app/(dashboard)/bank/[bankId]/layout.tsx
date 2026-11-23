@@ -87,7 +87,7 @@ export default function BankLayout({
             <div className="min-w-0">
               <p className="font-semibold text-white text-sm truncate">{bank.name}</p>
               <p className="text-xs text-blue-300 font-mono-numbers">
-                Year {bank.current_year} · Q{bank.current_quarter}/5
+                Year {bank.current_year} · Q{bank.current_quarter}/4
               </p>
             </div>
           </div>
@@ -119,7 +119,7 @@ export default function BankLayout({
           <div className="flex items-center justify-between text-xs">
             <span className="text-white/40">5-Yr Tenure</span>
             <Badge variant="secondary" className="bg-blue-500/20 text-blue-300 text-xs font-mono-numbers">
-              Q{((bank.current_year - 1) * 5) + bank.current_quarter} / 25
+              Q{((bank.current_year - 1) * 4) + bank.current_quarter} / 20
             </Badge>
           </div>
           <Button size="sm" className="w-full mt-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white border-0 text-xs" asChild>

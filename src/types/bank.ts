@@ -38,7 +38,7 @@ export interface Bank {
   initial_strategy: string;
   starting_capital: number;
   current_year: number;
-  current_quarter: 1 | 2 | 3 | 4 | 5;
+  current_quarter: 1 | 2 | 3 | 4;
   status: BankStatus;
   quarter_processing: boolean;
   random_seed: number;
@@ -71,6 +71,26 @@ export interface AnnualReportSection {
   status?: "positive" | "warning" | "neutral" | "negative";
 }
 
+export interface HumanVsAiKpis {
+  human_count: number;
+  ai_count: number;
+  human_quarterly_cost: number;
+  ai_quarterly_cost: number;
+  total_workforce_cost: number;
+  estimated_human_savings: number;
+  cost_savings_pct: number;
+  human_productivity_score: number;
+  ai_accuracy_score: number;
+  human_tasks_handled: number;
+  ai_tasks_handled: number;
+  total_tasks_handled: number;
+  ai_workload_share_pct: number;
+  customer_satisfaction_rating: number;
+  outcome_category: "Highly Successful AI Deployment" | "Balanced Hybrid Workforce" | "Human-Centric Model" | "Automated High-Efficiency";
+  decision_evaluation: "Positive Outcome" | "Neutral Transition" | "High Cost Impact";
+  evaluation_summary: string;
+}
+
 export interface AnnualReport {
   id: string;
   bank_id: string;
@@ -78,9 +98,11 @@ export interface AnnualReport {
   calendar_year: number;
   generated_at: string;
   is_read: boolean;
+  human_vs_ai_kpis?: HumanVsAiKpis;
   sections: {
     executive_summary: AnnualReportSection;
     financial_performance: AnnualReportSection;
+    human_vs_ai_workforce?: AnnualReportSection;
     profit_and_loss: AnnualReportSection;
     assets_and_liabilities: AnnualReportSection;
     loan_portfolio: AnnualReportSection;

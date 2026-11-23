@@ -1,9 +1,9 @@
 "use client";
 
-import type { Bank, BankSlot, BankSettings, CreateBankFormData, BankType, Difficulty, AnnualReport, FinalFiveYearReport } from "@/types/bank";
+import type { Bank, BankSlot, BankSettings, CreateBankFormData, BankType, Difficulty, AnnualReport, FinalFiveYearReport, HumanVsAiKpis } from "@/types/bank";
 import { formatCurrency } from "@/lib/formatters";
 
-export type { BankSettings, AnnualReport, FinalFiveYearReport };
+export type { BankSettings, AnnualReport, FinalFiveYearReport, HumanVsAiKpis };
 
 export interface UserProfile {
   id: string;
@@ -113,7 +113,7 @@ export interface SimulationState {
 export interface EconomicCondition {
   bank_id: string;
   year: number;
-  quarter: 1 | 2 | 3 | 4 | 5;
+  quarter: 1 | 2 | 3 | 4;
   gdp_growth: number;
   inflation_rate: number;
   central_bank_rate: number;
@@ -248,7 +248,11 @@ export function getBankSlots(): BankSlot[] {
 // 3. GET SINGLE BANK
 export function getBank(bankId: string): Bank | null {
   const banks = getStorage<Record<string, Bank>>(KEY_BANKS, {});
-  return banks[bankId] || null;
+  const b = banks[bankId] || null;
+  if (b && (b.current_quarter as number) > 4) {
+    b.current_quarter = 4;
+  }
+  return b;
 }
 
 // 4. CREATE BANK
@@ -732,6 +736,71 @@ function generateAnnualReportForYear(bankId: string, year: number): AnnualReport
   const totalNII = yearHistory.reduce((sum, h) => sum + h.net_interest_income, 0);
   const activeLoans = loans.filter((l) => l.status === "Active");
 
+  // Human vs AI workforce analytics
+  const aiAgents = getAiAgents(bankId);
+  const humanCount = emps.length;
+  const aiCount = aiAgents.length;
+  const humanQuarterlyCost = emps.reduce((sum, e) => sum + e.salary, 0);
+  const aiQuarterlyCost = aiAgents.reduce((sum, a) => sum + (a.monthly_cost * 3), 0);
+  const totalWorkforceCost = humanQuarterlyCost + aiQuarterlyCost;
+
+  // Replacement benchmark: average human banker salary ~35,000/qtr
+  const baselineHumanEquivalent = aiCount * 35000;
+  const estimatedSavings = Math.max(0, baselineHumanEquivalent - aiQuarterlyCost);
+  const costSavingsPct = baselineHumanEquivalent > 0
+    ? Math.round((estimatedSavings / baselineHumanEquivalent) * 100)
+    : 0;
+
+  const humanProd = humanCount > 0
+    ? Math.round(emps.reduce((s, e) => s + e.productivity, 0) / humanCount)
+    : 0;
+  const aiAcc = aiCount > 0
+    ? Math.round(aiAgents.reduce((s, a) => s + a.accuracy, 0) / aiCount)
+    : 0;
+
+  const humanTasks = humanCount * 320;
+  const aiTasks = aiCount * 1450;
+  const totalTasks = humanTasks + aiTasks;
+  const aiWorkloadShare = totalTasks > 0 ? Math.round((aiTasks / totalTasks) * 100) : 0;
+
+  let outcomeCategory: HumanVsAiKpis["outcome_category"] = "Human-Centric Model";
+  let decisionEval: HumanVsAiKpis["decision_evaluation"] = "Neutral Transition";
+  let evalSummary = "";
+
+  if (aiCount > 0 && humanCount > 0) {
+    outcomeCategory = "Balanced Hybrid Workforce";
+    decisionEval = "Positive Outcome";
+    evalSummary = `The hybrid workforce strategy successfully combined ${humanCount} human officers with ${aiCount} autonomous AI agents. AI units absorbed ${aiWorkloadShare}% of high-frequency customer and operational tasks, delivering approximately ${formatCurrency(estimatedSavings)} in quarterly personnel cost savings while maintaining high operational throughput.`;
+  } else if (aiCount > 0 && humanCount === 0) {
+    outcomeCategory = "Automated High-Efficiency";
+    decisionEval = "Positive Outcome";
+    evalSummary = `Full autonomous banking workforce deployed with ${aiCount} AI agents managing all active customer inquiries and digital workflows. Operational overhead remains significantly lower than traditional branch banking.`;
+  } else {
+    outcomeCategory = "Human-Centric Model";
+    decisionEval = "Neutral Transition";
+    evalSummary = `Traditional human banking operations maintained with ${humanCount} staff members. Human employees provided dedicated relationship banking and customized loan advisory, with opportunities to deploy AI agents for routine back-office cost reduction.`;
+  }
+
+  const humanVsAiKpis: HumanVsAiKpis = {
+    human_count: humanCount,
+    ai_count: aiCount,
+    human_quarterly_cost: humanQuarterlyCost,
+    ai_quarterly_cost: aiQuarterlyCost,
+    total_workforce_cost: totalWorkforceCost,
+    estimated_human_savings: estimatedSavings,
+    cost_savings_pct: costSavingsPct,
+    human_productivity_score: humanProd,
+    ai_accuracy_score: aiAcc,
+    human_tasks_handled: humanTasks,
+    ai_tasks_handled: aiTasks,
+    total_tasks_handled: totalTasks,
+    ai_workload_share_pct: aiWorkloadShare,
+    customer_satisfaction_rating: state.customer_satisfaction,
+    outcome_category: outcomeCategory,
+    decision_evaluation: decisionEval,
+    evaluation_summary: evalSummary,
+  };
+
   return {
     id: `rep-${bankId}-y${year}`,
     bank_id: bankId,
@@ -739,16 +808,32 @@ function generateAnnualReportForYear(bankId: string, year: number): AnnualReport
     calendar_year: calendarYear,
     generated_at: new Date().toISOString(),
     is_read: false,
+    human_vs_ai_kpis: humanVsAiKpis,
     sections: {
       executive_summary: {
         title: "1. Executive Summary",
-        content: `Annual Review for ${bank?.name || "The Institution"} under Chairman & CEO ${bank?.ceo_name || "Executive Leadership"}. Year ${year} (${calendarYear}) concluded all 5 operational quarters. Total assets stand at ${formatCurrency(state.total_assets)} supported by ${formatCurrency(state.total_equity)} in tier-1 capital reserves. Overall solvency remains ${state.capital_adequacy_ratio >= 12 ? "satisfactory and compliant" : "under supervisory observation"}.`,
+        content: `Annual Review for ${bank?.name || "The Institution"} under Chairman & CEO ${bank?.ceo_name || "Executive Leadership"}. Year ${year} (${calendarYear}) concluded all 4 operational quarters. Total assets stand at ${formatCurrency(state.total_assets)} supported by ${formatCurrency(state.total_equity)} in tier-1 capital reserves. Overall solvency remains ${state.capital_adequacy_ratio >= 12 ? "satisfactory and compliant" : "under supervisory observation"}.`,
         status: state.capital_adequacy_ratio >= 12 ? "positive" : "warning",
         metrics: {
           "Calendar Year": calendarYear,
           "Total Assets": formatCurrency(state.total_assets),
           "Total Equity": formatCurrency(state.total_equity),
-          "Quarters Completed": 5,
+          "Quarters Completed": 4,
+        },
+      },
+      human_vs_ai_workforce: {
+        title: "Workforce Strategy: Human vs. AI Performance",
+        content: evalSummary,
+        status: aiCount > 0 ? "positive" : "neutral",
+        metrics: {
+          "Human Employees": `${humanCount} Personnel`,
+          "AI Agents Deployed": `${aiCount} Autonomous Units`,
+          "Human Payroll (Qtr)": formatCurrency(humanQuarterlyCost),
+          "AI Opex Cost (Qtr)": formatCurrency(aiQuarterlyCost),
+          "Payroll Savings": formatCurrency(estimatedSavings),
+          "AI Workload Share": `${aiWorkloadShare}% of Tasks`,
+          "Human Productivity": humanCount > 0 ? `${humanProd}%` : "N/A",
+          "AI Processing Accuracy": aiCount > 0 ? `${aiAcc}%` : "N/A",
         },
       },
       financial_performance: {
@@ -764,11 +849,11 @@ function generateAnnualReportForYear(bankId: string, year: number): AnnualReport
       },
       profit_and_loss: {
         title: "3. Profit and Loss",
-        content: `Net interest income generated over the 5 quarters totaled ${formatCurrency(totalNII)}. Operating expenditure absorbed ${formatCurrency(state.operating_expenses * 5)}, with loan loss provisions of ${formatCurrency(state.loan_loss_provisions * 5)}.`,
+        content: `Net interest income generated over the 4 quarters totaled ${formatCurrency(totalNII)}. Operating expenditure absorbed ${formatCurrency(state.operating_expenses * 4)}, with loan loss provisions of ${formatCurrency(state.loan_loss_provisions * 4)}.`,
         metrics: {
           "Net Interest Income": formatCurrency(totalNII),
-          "Operating Expenses (Est.)": formatCurrency(state.operating_expenses * 5),
-          "Loan Provisions": formatCurrency(state.loan_loss_provisions * 5),
+          "Operating Expenses (Est.)": formatCurrency(state.operating_expenses * 4),
+          "Loan Provisions": formatCurrency(state.loan_loss_provisions * 4),
         },
       },
       assets_and_liabilities: {
@@ -846,9 +931,9 @@ function generateAnnualReportForYear(bankId: string, year: number): AnnualReport
       },
       major_decisions: {
         title: "12. Major Decisions Taken",
-        content: `Throughout Year ${year}'s 5 operational quarters, executive leadership executed monetary interest spread adjustments, approved personnel allocations, directed lending quotas, and safeguarded liquidity against external shocks.`,
+        content: `Throughout Year ${year}'s 4 operational quarters, executive leadership executed monetary interest spread adjustments, approved personnel allocations, directed lending quotas, and safeguarded liquidity against external shocks.`,
         metrics: {
-          "Operating Quarters": "5 Quarters Executed",
+          "Operating Quarters": "4 Quarters Executed",
           "Policy Alignment": "Benchmarked",
         },
       },
@@ -912,13 +997,13 @@ function generateFinalFiveYearReport(bankId: string): FinalFiveYearReport {
     ceo_name: bank?.ceo_name || "Chief Executive Officer",
     bank_name: bank?.name || "The Institution",
     mandate_grade: grade,
-    summary: `The 5-Year Executive Mandate encompassing 25 operational quarters has concluded. Under Chairman & CEO ${bank?.ceo_name || "Chief Executive Officer"}, the bank achieved peak balance sheet assets of ${formatCurrency(peakAssets)} and cumulative net earnings of ${formatCurrency(cumulativeProfit)}. Final supervisory CAR ended at ${state.capital_adequacy_ratio}%.`,
+    summary: `The 5-Year Executive Mandate encompassing 20 operational quarters has concluded. Under Chairman & CEO ${bank?.ceo_name || "Chief Executive Officer"}, the bank achieved peak balance sheet assets of ${formatCurrency(peakAssets)} and cumulative net earnings of ${formatCurrency(cumulativeProfit)}. Final supervisory CAR ended at ${state.capital_adequacy_ratio}%.`,
     cumulative_profit: cumulativeProfit,
     peak_assets: peakAssets,
     total_loans_issued: totalLoansIssued,
     npl_final: state.npl_ratio,
     final_car: state.capital_adequacy_ratio,
-    total_quarters_completed: 25,
+    total_quarters_completed: 20,
   };
 }
 
@@ -990,7 +1075,7 @@ export function updateSecurityConfig(bankId: string, config: Partial<BankSecurit
   setStorage(KEY_SECURITY, allSec);
 }
 
-// 15. ADVANCE QUARTER SIMULATION (5 Quarters per Year, 5 Years total = 25 Quarters)
+// 15. ADVANCE QUARTER SIMULATION (4 Quarters per Year, 5 Years total = 20 Quarters)
 export function advanceQuarterInStorage(
   bankId: string,
   decisions: {
@@ -1008,7 +1093,7 @@ export function advanceQuarterInStorage(
   const state = getSimulationState(bankId);
 
   // If 5-year simulation mandate is already completed, lock and do not corrupt data
-  if (bank.status === "completed" || (bank.current_year >= 5 && bank.current_quarter === 5 && getFinalReport(bankId))) {
+  if (bank.status === "completed" || (bank.current_year >= 5 && bank.current_quarter >= 4 && getFinalReport(bankId))) {
     bank.status = "completed";
     return { bank, state };
   }
@@ -1157,8 +1242,8 @@ export function advanceQuarterInStorage(
   allHist[bankId] = history;
   setStorage(KEY_HISTORY, allHist);
 
-  // Check if Quarter 5 is completed (Year-End)
-  const isYearEnd = bank.current_quarter === 5;
+  // Check if Quarter 4 is completed (Year-End)
+  const isYearEnd = bank.current_quarter === 4;
   if (isYearEnd) {
     // Generate Annual Report for this completed year
     const annualReport = generateAnnualReportForYear(bankId, bank.current_year);
@@ -1176,7 +1261,7 @@ export function advanceQuarterInStorage(
     setStorage(KEY_ANNUAL_REPORTS, allReports);
 
     if (bank.current_year >= 5) {
-      // 5-Year simulation complete (all 25 quarters completed!)
+      // 5-Year simulation complete (all 20 quarters completed!)
       const finalReport = generateFinalFiveYearReport(bankId);
       const allFinal = getStorage<Record<string, FinalFiveYearReport>>(KEY_FINAL_REPORTS, {});
       allFinal[bankId] = finalReport;
@@ -1187,7 +1272,7 @@ export function advanceQuarterInStorage(
       bank.current_quarter = 1;
     }
   } else {
-    bank.current_quarter = (bank.current_quarter + 1) as 1 | 2 | 3 | 4 | 5;
+    bank.current_quarter = (bank.current_quarter + 1) as 1 | 2 | 3 | 4;
   }
   bank.last_played_at = new Date().toISOString();
 

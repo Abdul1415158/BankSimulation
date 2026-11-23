@@ -22,6 +22,14 @@ import {
   Layers,
   ExternalLink,
   ChevronDown,
+  Users,
+  Bot,
+  Sparkles,
+  Cpu,
+  Zap,
+  BarChart3,
+  ArrowUpRight,
+  ArrowDownRight,
 } from "lucide-react";
 import {
   getBank,
@@ -110,12 +118,12 @@ export default function ReportsPage() {
               Desk · Reports & Audits
             </Badge>
             <span className="text-xs text-muted-foreground font-mono">
-              Year {bank.current_year} · Quarter {bank.current_quarter} of 5
+              Year {bank.current_year} · Quarter {bank.current_quarter} of 4
             </span>
           </div>
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight break-words">Financial & Regulatory Reporting Suite</h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-            Audited Balance Sheets, Comprehensive Income (P&L), Multi-Quarter Historical Ledgers, and 15-Section Annual Reports.
+            Audited Balance Sheets, Comprehensive Income (P&L), Human vs. AI Workforce Analytics, and Annual Reports.
           </p>
         </div>
         <Button onClick={exportCSV} variant="outline" size="sm" className="gap-2 shrink-0 w-full sm:w-auto justify-center">
@@ -226,7 +234,7 @@ export default function ReportsPage() {
               <FileText className="size-10 sm:size-12 text-muted-foreground/40 mx-auto" />
               <CardTitle className="text-base sm:text-lg">No Annual Reports Generated Yet</CardTitle>
               <CardDescription className="max-w-md mx-auto text-xs leading-relaxed">
-                Annual Reports are automatically compiled upon the completion of <strong>Quarter 5</strong> of each operating year. Currently active: <strong>Year {bank.current_year} · Quarter {bank.current_quarter} of 5</strong>. Advance through Quarter 5 to generate your first Year-End report.
+                Annual Reports are automatically compiled upon the completion of <strong>Quarter 4</strong> of each operating year. Currently active: <strong>Year {bank.current_year} · Quarter {bank.current_quarter} of 4</strong>. Advance through Quarter 4 to generate your first Year-End report.
               </CardDescription>
             </Card>
           ) : (
@@ -266,14 +274,14 @@ export default function ReportsPage() {
                           Official Regulatory Filing · Year {selectedReport.year} (Calendar {selectedReport.calendar_year})
                         </Badge>
                         <Badge className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs py-0.5 px-2.5">
-                          Audited 5-Quarter Package
+                          Audited 4-Quarter Package
                         </Badge>
                       </div>
                       <CardTitle className="text-lg sm:text-2xl font-bold tracking-tight text-foreground">
                         {bank.name} — Year {selectedReport.year} Comprehensive Annual Report
                       </CardTitle>
                       <CardDescription className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                        Statutory CEO Address, Audited Financial Statements, Prudential Solvency Position, and Supervisory Disclosures.
+                        Statutory CEO Address, Audited Financial Statements, Human vs. AI Workforce Strategy, and Solvency Disclosures.
                       </CardDescription>
                     </div>
 
@@ -289,7 +297,19 @@ export default function ReportsPage() {
                               : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
                           }`}
                         >
-                          All 15 Sections
+                          All Sections
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setActiveSectionKey("ai")}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+                            activeSectionKey === "ai"
+                              ? "bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-sm"
+                              : "text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10 border border-cyan-500/30"
+                          }`}
+                        >
+                          <Bot className="size-3.5" />
+                          <span>Human vs AI Workforce</span>
                         </button>
                         <button
                           type="button"
@@ -317,11 +337,190 @@ export default function ReportsPage() {
                     </div>
                   </CardHeader>
 
-                  <CardContent className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+                  <CardContent className="p-4 sm:p-6 space-y-6">
+                    {/* EXECUTIVE HUMAN VS. AI WORKFORCE DOSSIER (Shown in 'All' and 'Human vs AI' views) */}
+                    {selectedReport.human_vs_ai_kpis && (activeSectionKey === "all" || activeSectionKey === "ai") && (
+                      <Card className="border-cyan-500/40 bg-gradient-to-br from-blue-950/20 via-background to-cyan-950/20 shadow-lg overflow-hidden">
+                        <CardHeader className="p-4 sm:p-5 border-b border-border/60 bg-muted/20">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div className="flex items-start sm:items-center gap-3">
+                              <div className="size-10 sm:size-11 rounded-xl bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 flex items-center justify-center shrink-0">
+                                <Bot className="size-5 sm:size-6" />
+                              </div>
+                              <div>
+                                <CardTitle className="text-base sm:text-lg font-bold text-foreground flex items-center gap-2">
+                                  <span>Human vs. AI Workforce Strategy & Performance</span>
+                                </CardTitle>
+                                <CardDescription className="text-xs mt-0.5">
+                                  Quantitative analysis of personnel costs, AI agent automation, throughput efficiency, and net payroll savings.
+                                </CardDescription>
+                              </div>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2 shrink-0">
+                              <Badge className="bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-semibold text-xs">
+                                {selectedReport.human_vs_ai_kpis.outcome_category}
+                              </Badge>
+                              <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-semibold text-xs">
+                                {selectedReport.human_vs_ai_kpis.decision_evaluation}
+                              </Badge>
+                            </div>
+                          </div>
+                        </CardHeader>
+
+                        <CardContent className="p-4 sm:p-5 space-y-5">
+                          {/* 4 Primary KPI Highlight Cards */}
+                          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 text-xs">
+                            <div className="p-3 bg-background/80 rounded-xl border border-blue-500/20 space-y-1">
+                              <div className="flex items-center justify-between text-muted-foreground">
+                                <span className="text-[11px] font-medium flex items-center gap-1">
+                                  <Users className="size-3.5 text-blue-400" />
+                                  Human Bankers
+                                </span>
+                              </div>
+                              <p className="text-base sm:text-lg font-bold text-foreground font-mono-numbers">
+                                {selectedReport.human_vs_ai_kpis.human_count} Personnel
+                              </p>
+                              <span className="text-[11px] text-muted-foreground block font-mono-numbers">
+                                Payroll: {formatCurrency(selectedReport.human_vs_ai_kpis.human_quarterly_cost, currency)}/qtr
+                              </span>
+                            </div>
+
+                            <div className="p-3 bg-background/80 rounded-xl border border-cyan-500/20 space-y-1">
+                              <div className="flex items-center justify-between text-muted-foreground">
+                                <span className="text-[11px] font-medium flex items-center gap-1">
+                                  <Bot className="size-3.5 text-cyan-400" />
+                                  AI Agents Deployed
+                                </span>
+                              </div>
+                              <p className="text-base sm:text-lg font-bold text-cyan-400 font-mono-numbers">
+                                {selectedReport.human_vs_ai_kpis.ai_count} Units
+                              </p>
+                              <span className="text-[11px] text-muted-foreground block font-mono-numbers">
+                                AI Opex: {formatCurrency(selectedReport.human_vs_ai_kpis.ai_quarterly_cost, currency)}/qtr
+                              </span>
+                            </div>
+
+                            <div className="p-3 bg-background/80 rounded-xl border border-emerald-500/20 space-y-1">
+                              <div className="flex items-center justify-between text-muted-foreground">
+                                <span className="text-[11px] font-medium flex items-center gap-1">
+                                  <TrendingUp className="size-3.5 text-emerald-400" />
+                                  Estimated Savings
+                                </span>
+                              </div>
+                              <p className="text-base sm:text-lg font-bold text-emerald-400 font-mono-numbers">
+                                {formatCurrency(selectedReport.human_vs_ai_kpis.estimated_human_savings, currency)}
+                              </p>
+                              <span className="text-[11px] text-emerald-400/80 block">
+                                {selectedReport.human_vs_ai_kpis.cost_savings_pct}% Payroll Reduction
+                              </span>
+                            </div>
+
+                            <div className="p-3 bg-background/80 rounded-xl border border-purple-500/20 space-y-1">
+                              <div className="flex items-center justify-between text-muted-foreground">
+                                <span className="text-[11px] font-medium flex items-center gap-1">
+                                  <Cpu className="size-3.5 text-purple-400" />
+                                  AI Workload Share
+                                </span>
+                              </div>
+                              <p className="text-base sm:text-lg font-bold text-purple-400 font-mono-numbers">
+                                {selectedReport.human_vs_ai_kpis.ai_workload_share_pct}%
+                              </p>
+                              <span className="text-[11px] text-muted-foreground block font-mono-numbers">
+                                {selectedReport.human_vs_ai_kpis.ai_tasks_handled.toLocaleString()} AI Tasks Handled
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Comparative Performance Matrix Table */}
+                          <div className="rounded-xl border border-border/70 overflow-hidden bg-background/60">
+                            <div className="p-3 bg-muted/40 border-b border-border/70 flex items-center justify-between">
+                              <span className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5">
+                                <BarChart3 className="size-3.5 text-blue-400" />
+                                Comparative Workforce Matrix (Quarterly Evaluation)
+                              </span>
+                              <span className="text-[11px] text-muted-foreground font-mono">
+                                Standard vs Autonomous Model
+                              </span>
+                            </div>
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-xs">
+                                <thead>
+                                  <tr className="border-b bg-muted/20 text-muted-foreground text-[11px] uppercase">
+                                    <th className="text-left py-2.5 px-3.5">Performance Metric</th>
+                                    <th className="text-center py-2.5 px-3.5">Human Employees</th>
+                                    <th className="text-center py-2.5 px-3.5">Autonomous AI Agents</th>
+                                    <th className="text-right py-2.5 px-3.5">Strategic Outcome</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-border/50">
+                                  <tr className="hover:bg-muted/10">
+                                    <td className="py-2.5 px-3.5 font-medium text-foreground">Total Deployed Count</td>
+                                    <td className="py-2.5 px-3.5 text-center font-mono-numbers">{selectedReport.human_vs_ai_kpis.human_count} Officers</td>
+                                    <td className="py-2.5 px-3.5 text-center font-mono-numbers text-cyan-400 font-semibold">{selectedReport.human_vs_ai_kpis.ai_count} Agents</td>
+                                    <td className="py-2.5 px-3.5 text-right text-muted-foreground">{selectedReport.human_vs_ai_kpis.ai_count > 0 ? "Hybrid Allocation" : "Manual Staffing"}</td>
+                                  </tr>
+                                  <tr className="hover:bg-muted/10">
+                                    <td className="py-2.5 px-3.5 font-medium text-foreground">Quarterly Operating Cost</td>
+                                    <td className="py-2.5 px-3.5 text-center font-mono-numbers">{formatCurrency(selectedReport.human_vs_ai_kpis.human_quarterly_cost, currency)}</td>
+                                    <td className="py-2.5 px-3.5 text-center font-mono-numbers text-cyan-400">{formatCurrency(selectedReport.human_vs_ai_kpis.ai_quarterly_cost, currency)}</td>
+                                    <td className="py-2.5 px-3.5 text-right font-mono-numbers font-semibold text-emerald-400">
+                                      {selectedReport.human_vs_ai_kpis.estimated_human_savings > 0 ? `-${formatCurrency(selectedReport.human_vs_ai_kpis.estimated_human_savings, currency)} (Savings)` : "Baseline"}
+                                    </td>
+                                  </tr>
+                                  <tr className="hover:bg-muted/10">
+                                    <td className="py-2.5 px-3.5 font-medium text-foreground">Operational Execution Speed</td>
+                                    <td className="py-2.5 px-3.5 text-center text-muted-foreground">1.0x (Standard Banking Pace)</td>
+                                    <td className="py-2.5 px-3.5 text-center font-semibold text-cyan-400">8.0x High-Velocity Automation</td>
+                                    <td className="py-2.5 px-3.5 text-right text-emerald-400 font-medium">Instant 24/7 Processing</td>
+                                  </tr>
+                                  <tr className="hover:bg-muted/10">
+                                    <td className="py-2.5 px-3.5 font-medium text-foreground">Accuracy / Error Guard</td>
+                                    <td className="py-2.5 px-3.5 text-center font-mono-numbers">{selectedReport.human_vs_ai_kpis.human_count > 0 ? `${selectedReport.human_vs_ai_kpis.human_productivity_score}%` : "N/A"}</td>
+                                    <td className="py-2.5 px-3.5 text-center font-mono-numbers text-cyan-400">{selectedReport.human_vs_ai_kpis.ai_count > 0 ? `${selectedReport.human_vs_ai_kpis.ai_accuracy_score}%` : "98% (Target)"}</td>
+                                    <td className="py-2.5 px-3.5 text-right text-muted-foreground">Strict Rule Compliance</td>
+                                  </tr>
+                                  <tr className="hover:bg-muted/10">
+                                    <td className="py-2.5 px-3.5 font-medium text-foreground">Quarterly Task Throughput</td>
+                                    <td className="py-2.5 px-3.5 text-center font-mono-numbers">{selectedReport.human_vs_ai_kpis.human_tasks_handled.toLocaleString()} Tasks</td>
+                                    <td className="py-2.5 px-3.5 text-center font-mono-numbers text-cyan-400">{selectedReport.human_vs_ai_kpis.ai_tasks_handled.toLocaleString()} Tasks</td>
+                                    <td className="py-2.5 px-3.5 text-right font-mono-numbers font-medium">{selectedReport.human_vs_ai_kpis.total_tasks_handled.toLocaleString()} Total Handled</td>
+                                  </tr>
+                                  <tr className="hover:bg-muted/10">
+                                    <td className="py-2.5 px-3.5 font-medium text-foreground">Customer Relationship Model</td>
+                                    <td className="py-2.5 px-3.5 text-center text-muted-foreground">High-Touch Advisory</td>
+                                    <td className="py-2.5 px-3.5 text-center text-cyan-400">Instant Digital Routing</td>
+                                    <td className="py-2.5 px-3.5 text-right text-blue-400 font-medium">{selectedReport.human_vs_ai_kpis.customer_satisfaction_rating}% Trust Score</td>
+                                  </tr>
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+
+                          {/* Decision vs Outcome Executive Commentary */}
+                          <div className="p-3.5 rounded-xl bg-blue-500/10 border border-blue-500/30 text-xs space-y-1.5">
+                            <div className="flex items-center gap-2">
+                              <Sparkles className="size-4 text-cyan-400 shrink-0" />
+                              <strong className="text-foreground font-semibold">
+                                Executive Strategic Decision Evaluation:
+                              </strong>
+                            </div>
+                            <p className="text-muted-foreground leading-relaxed pl-6">
+                              {selectedReport.human_vs_ai_kpis.evaluation_summary}
+                            </p>
+                            <p className="text-[11px] text-cyan-400/90 pl-6 font-mono">
+                              Academic Simulation Benchmark: Evaluates management replacement decisions (human hiring vs AI agent automation) against net bank profit and customer service quality.
+                            </p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
                     {/* Render sections with responsive cards */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                       {Object.entries(selectedReport.sections)
                         .filter(([key]) => {
+                          if (activeSectionKey === "ai") {
+                            return key === "human_vs_ai_workforce";
+                          }
                           if (activeSectionKey === "exec") {
                             return ["executive_summary", "financial_performance", "profit_and_loss", "assets_and_liabilities", "loan_portfolio", "deposit_growth", "capital_and_liquidity"].includes(key);
                           }
@@ -418,7 +617,7 @@ export default function ReportsPage() {
                 <div className="min-w-0">
                   <CardTitle className="text-base sm:text-lg font-bold break-words">Consolidated Balance Sheet Statement</CardTitle>
                   <CardDescription className="text-xs mt-0.5">
-                    As of Year {bank.current_year}, Quarter {bank.current_quarter} of 5 · Assets = Liabilities + Shareholder Equity
+                    As of Year {bank.current_year}, Quarter {bank.current_quarter} of 4 · Assets = Liabilities + Shareholder Equity
                   </CardDescription>
                 </div>
                 <Badge variant="outline" className="text-xs bg-emerald-500/10 text-emerald-400 border-emerald-500/30 shrink-0 self-start sm:self-auto">
@@ -518,7 +717,7 @@ export default function ReportsPage() {
             <CardHeader className="border-b p-4 sm:p-6 pb-3 sm:pb-4 flex flex-row items-center justify-between gap-2">
               <div>
                 <CardTitle className="text-base sm:text-lg font-bold break-words">Quarterly Financial Ledger</CardTitle>
-                <CardDescription className="text-xs mt-0.5">Complete trajectory across all simulated quarters (5 Quarters per Year, 25 Quarters max).</CardDescription>
+                <CardDescription className="text-xs mt-0.5">Complete trajectory across all simulated quarters (4 Quarters per Year, 20 Quarters max).</CardDescription>
               </div>
               <Badge variant="outline" className="text-xs font-mono shrink-0">
                 {history.length} Quarters Recorded

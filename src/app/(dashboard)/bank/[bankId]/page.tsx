@@ -132,7 +132,7 @@ export default function BankOverviewPage() {
           </div>
           <h1 className="text-2xl font-bold tracking-tight">{bank.name}</h1>
           <p className="text-muted-foreground text-sm font-mono-numbers">
-            Year {bank.current_year} of 5 · Quarter {bank.current_quarter} of 5 (Quarter {((bank.current_year - 1) * 5) + bank.current_quarter} / 25)
+            Year {bank.current_year} of 5 · Quarter {bank.current_quarter} of 4 (Quarter {((bank.current_year - 1) * 4) + bank.current_quarter} / 20)
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">

@@ -89,18 +89,18 @@ export function AdvanceQuarterForm({
     setCustomerCount(getCustomers(bankId).length);
   }, [bankId]);
 
-  // Check if simulation mandate (all 25 quarters / 5 years) is completed
+  // Check if simulation mandate (all 20 quarters / 5 years) is completed
   const currentBank = getBank(bankId);
   const isMandateComplete = Boolean(
     currentBank?.status === "completed" ||
-    (activeYear >= 5 && activeQuarter >= 5 && getFinalReport(bankId))
+    (activeYear >= 5 && activeQuarter >= 4 && getFinalReport(bankId))
   );
 
   // Single quarter advancement logic (Simulates ONLY the current quarter and stops)
   const executeSingleQuarter = (isMonthlyOnly = false) => {
     try {
       const bCheck = getBank(bankId);
-      if (bCheck?.status === "completed" || (activeYear >= 5 && activeQuarter >= 5 && getFinalReport(bankId))) {
+      if (bCheck?.status === "completed" || (activeYear >= 5 && activeQuarter >= 4 && getFinalReport(bankId))) {
         return null;
       }
 
@@ -120,7 +120,7 @@ export function AdvanceQuarterForm({
       setLiveState({ ...state });
       setCustomerCount(getCustomers(bankId).length);
 
-      if (prevQuarter === 5) {
+      if (prevQuarter === 4) {
         setAnnualReportNotice(`Year ${prevYear} Annual Report Generated!`);
         setTimeout(() => setAnnualReportNotice(null), 5000);
       }
@@ -130,8 +130,8 @@ export function AdvanceQuarterForm({
         state,
         completedYear: prevYear,
         completedQuarter: prevQuarter,
-        wasYearEnd: prevQuarter === 5,
-        isFinal: bank.status === "completed" || (bank.current_year >= 5 && bank.current_quarter === 5),
+        wasYearEnd: prevQuarter === 4,
+        isFinal: bank.status === "completed" || (bank.current_year >= 5 && bank.current_quarter === 4),
       };
     } catch (err) {
       console.error("Step advance error:", err);
@@ -212,10 +212,10 @@ export function AdvanceQuarterForm({
               <CardDescription className="text-xs mt-1">
                 {successResult.wasYearEnd ? (
                   <strong className="text-emerald-400 font-semibold">
-                    Year {successResult.completedYear} (all 5 quarters) successfully finished! 15-Section Annual Report compiled in Reports desk.
+                    Year {successResult.completedYear} (all 4 quarters) successfully finished! Comprehensive Annual Report compiled in Reports desk.
                   </strong>
                 ) : (
-                  `Quarter ${successResult.completedQuarter} results committed. Advanced to Year ${successResult.nextYear}, Quarter ${successResult.nextQuarter} of 5.`
+                  `Quarter ${successResult.completedQuarter} results committed. Advanced to Year ${successResult.nextYear}, Quarter ${successResult.nextQuarter} of 4.`
                 )}
               </CardDescription>
             </div>
@@ -302,7 +302,7 @@ export function AdvanceQuarterForm({
               <div className="flex items-center gap-2.5 min-w-0">
                 <span className="size-2 rounded-full bg-amber-400 shrink-0" />
                 <span className="text-foreground">
-                  <strong className="text-amber-400 font-bold">5-Year Executive Mandate Concluded:</strong> All 25 simulated quarters are finished. Simulation controls are locked to protect official audit filings.
+                  <strong className="text-amber-400 font-bold">5-Year Executive Mandate Concluded:</strong> All 20 simulated quarters are finished. Simulation controls are locked to protect official audit filings.
                 </span>
               </div>
               <Button
@@ -408,7 +408,7 @@ export function AdvanceQuarterForm({
             <div className="bg-background/80 p-2.5 rounded-lg border">
               <span className="text-muted-foreground text-[11px]">Current Quarter</span>
               <p className="font-bold text-sm text-blue-400 font-mono-numbers mt-0.5">
-                Year {activeYear} · Q{activeQuarter} / 5
+                Year {activeYear} · Q{activeQuarter} / 4
               </p>
             </div>
             <div className="bg-background/80 p-2.5 rounded-lg border">
@@ -450,14 +450,14 @@ export function AdvanceQuarterForm({
         </CardContent>
       </Card>
 
-      {/* Year-End Q5 Notice */}
-      {activeQuarter === 5 && (
+      {/* Year-End Q4 Notice */}
+      {activeQuarter === 4 && (
         <Card className="border-amber-500/30 bg-amber-500/5">
           <CardContent className="p-4 flex items-center gap-3">
             <AlertCircle className="size-5 text-amber-500 shrink-0" />
             <div className="text-xs">
-              <strong className="text-foreground">Quarter 5 of 5 · Year-End Closing:</strong>{" "}
-              Running this quarter will conclude Year {activeYear} operations and trigger the generation of the official 15-Section Annual Report.
+              <strong className="text-foreground">Quarter 4 of 4 · Year-End Closing:</strong>{" "}
+              Running this quarter will conclude Year {activeYear} operations and trigger the generation of the official Annual Report.
             </div>
           </CardContent>
         </Card>
@@ -645,7 +645,7 @@ export function AdvanceQuarterForm({
           ) : isMandateComplete ? (
             <>
               <CheckCircle2 className="size-4 mr-2 text-emerald-300" />
-              5-Year Mandate Concluded (All 25 Quarters Filed)
+              5-Year Mandate Concluded (All 20 Quarters Filed)
             </>
           ) : (
             <>

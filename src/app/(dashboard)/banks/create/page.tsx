@@ -341,9 +341,9 @@ function CreateBankFormContent() {
                 <div className="space-y-2">
                   <Label>Mandate Duration</Label>
                   <div className="h-10 px-3 py-2 border rounded-md bg-muted/30 text-sm font-medium flex items-center">
-                    5 Years (5 Quarters/Yr = 25 Quarters)
+                    5 Years (4 Quarters/Yr = 20 Quarters)
                   </div>
-                  <p className="text-xs text-muted-foreground">Fixed regulatory tenure with annual reports at each Q5.</p>
+                  <p className="text-xs text-muted-foreground">Fixed regulatory tenure with annual reports at each Q4.</p>
                 </div>
               </div>
 
@@ -398,7 +398,7 @@ function CreateBankFormContent() {
                     ["Accounting Currency", form.currency],
                     ["Difficulty", DIFFICULTIES[form.difficulty]?.label],
                     ["Initial Capital (Cash)", formatCurrency(form.starting_capital, form.currency)],
-                    ["Simulation System", "5 Years × 5 Quarters = 25 Quarters"],
+                    ["Simulation System", "5 Years × 4 Quarters = 20 Quarters"],
                     ["Initial Staff / Loans", "0 Staff / 0 Debt (Clean Start from Zero)"],
                   ].map(([label, value]) => (
                     <div key={label as string} className="bg-background/80 p-2.5 rounded-lg border">

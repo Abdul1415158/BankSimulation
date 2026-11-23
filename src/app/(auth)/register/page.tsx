@@ -62,7 +62,7 @@ export default function RegisterPage() {
             Create your account
           </CardTitle>
           <CardDescription className="text-xs sm:text-sm text-muted-foreground mt-1.5 leading-relaxed">
-            Establish your executive banking profile. Manage independent institutions from zero with our 25-quarter simulation engine.
+            Establish your executive banking profile. Manage independent institutions from zero with our 20-quarter simulation engine.
           </CardDescription>
         </div>
       </CardHeader>
