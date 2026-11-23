@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,13 +26,12 @@ import {
   CheckCircle2,
   ArrowRight,
   Play,
-  Pause,
-  FastForward,
-  Flame,
   Calendar,
   AlertCircle,
   Users,
   Building2,
+  Award,
+  Sparkles,
 } from "lucide-react";
 
 interface AdvanceQuarterFormProps {
@@ -53,7 +52,6 @@ export function AdvanceQuarterForm({
   activeCrisis,
 }: AdvanceQuarterFormProps) {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
   const [successResult, setSuccessResult] = useState<any | null>(null);
 
   // Live simulation tracking
@@ -62,9 +60,10 @@ export function AdvanceQuarterForm({
   const [liveState, setLiveState] = useState<SimulationState | null>(null);
   const [customerCount, setCustomerCount] = useState(0);
 
-  // Time & Simulation controls
-  const [isPlaying, setIsPlaying] = useState(false);
+  // Single-quarter simulation speed & progress state (Simulates EXACTLY 1 Quarter per run)
+  const [isSimulating, setIsSimulating] = useState(false);
   const [simSpeed, setSimSpeed] = useState<"1x" | "3x" | "10x" | "boost">("1x");
+  const [simProgress, setSimProgress] = useState(0);
   const [annualReportNotice, setAnnualReportNotice] = useState<string | null>(null);
 
   // Form decisions
@@ -97,14 +96,16 @@ export function AdvanceQuarterForm({
     (activeYear >= 5 && activeQuarter >= 5 && getFinalReport(bankId))
   );
 
-  // Single step advancement logic
-  const stepAdvance = (isMonthlyOnly = false) => {
+  // Single quarter advancement logic (Simulates ONLY the current quarter and stops)
+  const executeSingleQuarter = (isMonthlyOnly = false) => {
     try {
       const bCheck = getBank(bankId);
       if (bCheck?.status === "completed" || (activeYear >= 5 && activeQuarter >= 5 && getFinalReport(bankId))) {
-        setIsPlaying(false);
         return null;
       }
+
+      const prevYear = activeYear;
+      const prevQuarter = activeQuarter;
 
       const { bank, state } = advanceQuarterInStorage(bankId, {
         savingsRate: retailDepositRate,
@@ -119,147 +120,171 @@ export function AdvanceQuarterForm({
       setLiveState({ ...state });
       setCustomerCount(getCustomers(bankId).length);
 
-      if (bank.current_quarter === 1 && bank.current_year > activeYear) {
-        setAnnualReportNotice(`Year ${bank.current_year - 1} Annual Report Generated!`);
-        setTimeout(() => setAnnualReportNotice(null), 4000);
+      if (prevQuarter === 5) {
+        setAnnualReportNotice(`Year ${prevYear} Annual Report Generated!`);
+        setTimeout(() => setAnnualReportNotice(null), 5000);
       }
 
-      if (bank.status === "completed" || (bank.current_year >= 5 && bank.current_quarter === 5)) {
-        setIsPlaying(false);
-        setSuccessResult({
-          nextYear: 5,
-          nextQuarter: 5,
-          netProfit: state.net_profit,
-          totalAssets: state.total_assets,
-          capitalAdequacyRatio: state.capital_adequacy_ratio / 100,
-          customerSatisfaction: state.customer_satisfaction,
-          wasYearEnd: true,
-          completedYear: 5,
-          isFinal: true,
-        });
-      }
-
-      return { bank, state };
+      return {
+        bank,
+        state,
+        completedYear: prevYear,
+        completedQuarter: prevQuarter,
+        wasYearEnd: prevQuarter === 5,
+        isFinal: bank.status === "completed" || (bank.current_year >= 5 && bank.current_quarter === 5),
+      };
     } catch (err) {
       console.error("Step advance error:", err);
-      setIsPlaying(false);
       return null;
     }
   };
 
-  // AUTOMATED SIMULATION RUNNER (Ticks when isPlaying is true at chosen speed)
-  useEffect(() => {
-    if (!isPlaying) return;
+  // Run single quarter at chosen speed, then STOP
+  const runQuarterSimulation = (isMonthlyOnly = false) => {
+    if (isSimulating || isMandateComplete) return;
 
-    const intervalMap: Record<string, number> = {
-      "1x": 3500,
-      "3x": 1600,
-      "10x": 700,
-      "boost": 250,
+    setIsSimulating(true);
+    setSimProgress(15);
+
+    const speedDurationMap: Record<string, number> = {
+      "1x": 2400,
+      "3x": 1200,
+      "10x": 500,
+      "boost": 120,
     };
 
-    const intervalMs = intervalMap[simSpeed] || 2000;
+    const duration = speedDurationMap[simSpeed] || 2000;
+    const intervalMs = Math.max(30, Math.round(duration / 10));
 
+    let currentP = 15;
     const timer = setInterval(() => {
-      const res = stepAdvance(false);
-      if (!res || res.bank.status === "completed") {
-        setIsPlaying(false);
+      currentP += 10;
+      if (currentP >= 92) {
         clearInterval(timer);
       }
+      setSimProgress(Math.min(92, currentP));
     }, intervalMs);
 
-    return () => clearInterval(timer);
-  }, [isPlaying, simSpeed, bankId, retailDepositRate, retailLendingRate, corporateLendingRate, activeYear]);
+    setTimeout(() => {
+      clearInterval(timer);
+      setSimProgress(100);
+
+      const res = executeSingleQuarter(isMonthlyOnly);
+      setIsSimulating(false);
+      setSimProgress(0);
+
+      if (res) {
+        setSuccessResult({
+          completedYear: res.completedYear,
+          completedQuarter: res.completedQuarter,
+          nextYear: res.bank.current_year,
+          nextQuarter: res.bank.current_quarter,
+          netProfit: res.state.net_profit,
+          totalAssets: res.state.total_assets,
+          capitalAdequacyRatio: res.state.capital_adequacy_ratio / 100,
+          customerSatisfaction: res.state.customer_satisfaction,
+          wasYearEnd: res.wasYearEnd,
+          isFinal: res.isFinal,
+        });
+      }
+    }, duration);
+  };
 
   const handleManualAdvance = (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    const res = stepAdvance(false);
-    if (res) {
-      setSuccessResult({
-        nextYear: res.bank.current_year,
-        nextQuarter: res.bank.current_quarter,
-        netProfit: res.state.net_profit,
-        totalAssets: res.state.total_assets,
-        capitalAdequacyRatio: res.state.capital_adequacy_ratio / 100,
-        customerSatisfaction: res.state.customer_satisfaction,
-        wasYearEnd: activeQuarter === 5,
-        completedYear: activeYear,
-        isFinal: res.bank.status === "completed",
-      });
-    }
-    setLoading(false);
+    runQuarterSimulation(false);
   };
 
   if (successResult) {
     return (
-      <Card className="border-emerald-500/30 bg-emerald-500/5 shadow-lg">
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <div className="size-10 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
+      <Card className="border-emerald-500/40 bg-emerald-500/5 shadow-xl transition-all">
+        <CardHeader className="p-4 sm:p-6 pb-3">
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="size-11 rounded-full bg-emerald-500/15 text-emerald-500 flex items-center justify-center shrink-0">
               <CheckCircle2 className="size-6" />
             </div>
             <div>
-              <CardTitle className="text-xl font-bold text-emerald-950 dark:text-emerald-200">
+              <CardTitle className="text-lg sm:text-xl font-bold text-emerald-950 dark:text-emerald-200">
                 {successResult.isFinal
                   ? "5-Year Executive Mandate Completed!"
-                  : "Quarter Simulation Completed Successfully!"}
+                  : `Year ${successResult.completedYear} · Quarter ${successResult.completedQuarter} Concluded!`}
               </CardTitle>
-              <CardDescription className="text-xs">
+              <CardDescription className="text-xs mt-1">
                 {successResult.wasYearEnd ? (
-                  <strong className="text-emerald-400">
-                    Year {successResult.completedYear} Completed! 15-Section Annual Report generated and archived in Reports section.
+                  <strong className="text-emerald-400 font-semibold">
+                    Year {successResult.completedYear} (all 5 quarters) successfully finished! 15-Section Annual Report compiled in Reports desk.
                   </strong>
                 ) : (
-                  `Advanced to Year ${successResult.nextYear}, Quarter ${successResult.nextQuarter} of 5.`
+                  `Quarter ${successResult.completedQuarter} results committed. Advanced to Year ${successResult.nextYear}, Quarter ${successResult.nextQuarter} of 5.`
                 )}
               </CardDescription>
             </div>
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 py-3 border-y border-border text-xs">
-            <div>
-              <span className="text-muted-foreground">Quarterly Net Profit</span>
-              <p className={`font-bold text-sm font-mono-numbers ${successResult.netProfit >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
+        <CardContent className="p-4 sm:p-6 pt-2 space-y-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 py-3 border-y border-border/60 text-xs">
+            <div className="p-2.5 rounded-lg bg-background/60 border border-border/40">
+              <span className="text-muted-foreground text-[11px] block">Quarter Net Profit</span>
+              <p className={`font-bold text-sm font-mono-numbers mt-0.5 ${successResult.netProfit >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
                 {formatCurrency(successResult.netProfit, currency)}
               </p>
             </div>
-            <div>
-              <span className="text-muted-foreground">Total Assets</span>
-              <p className="font-bold text-sm font-mono-numbers">
+            <div className="p-2.5 rounded-lg bg-background/60 border border-border/40">
+              <span className="text-muted-foreground text-[11px] block">Total Assets</span>
+              <p className="font-bold text-sm font-mono-numbers text-foreground mt-0.5">
                 {formatCurrency(successResult.totalAssets, currency)}
               </p>
             </div>
-            <div>
-              <span className="text-muted-foreground">Capital Adequacy (CAR)</span>
-              <p className="font-bold text-sm font-mono-numbers">
+            <div className="p-2.5 rounded-lg bg-background/60 border border-border/40">
+              <span className="text-muted-foreground text-[11px] block">Capital Ratio (CAR)</span>
+              <p className="font-bold text-sm font-mono-numbers text-blue-400 mt-0.5">
                 {formatPercent(successResult.capitalAdequacyRatio)}
               </p>
             </div>
-            <div>
-              <span className="text-muted-foreground">Customer Satisfaction</span>
-              <p className="font-bold text-sm font-mono-numbers">
+            <div className="p-2.5 rounded-lg bg-background/60 border border-border/40">
+              <span className="text-muted-foreground text-[11px] block">Customer Trust</span>
+              <p className="font-bold text-sm font-mono-numbers text-foreground mt-0.5">
                 {successResult.customerSatisfaction}%
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 pt-2">
+          <div className="flex flex-wrap items-center gap-3 pt-2">
+            {!successResult.isFinal && (
+              <Button
+                className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold text-xs sm:text-sm"
+                onClick={() => {
+                  setSuccessResult(null);
+                }}
+              >
+                <span>Configure Year {successResult.nextYear} · Quarter {successResult.nextQuarter} Decisions</span>
+                <ArrowRight className="size-4 ml-1.5" />
+              </Button>
+            )}
+
             <Button
-              className="w-full sm:w-auto"
+              variant="outline"
+              className="w-full sm:w-auto text-xs sm:text-sm"
               onClick={() => {
                 setSuccessResult(null);
-                if (successResult.wasYearEnd) {
-                  router.push(`/bank/${bankId}/reports`);
-                } else {
-                  router.push(`/bank/${bankId}`);
-                }
+                router.push(`/bank/${bankId}`);
               }}
             >
-              {successResult.wasYearEnd ? "View Year-End Annual Report" : "Return to Bank Dashboard"}{" "}
-              <ArrowRight className="size-4 ml-1" />
+              Return to Bank Dashboard
             </Button>
+
+            {successResult.wasYearEnd && (
+              <Button
+                variant="outline"
+                className="w-full sm:w-auto border-blue-500/40 text-blue-400 hover:text-blue-300 text-xs sm:text-sm"
+                onClick={() => {
+                  setSuccessResult(null);
+                  router.push(`/bank/${bankId}/reports`);
+                }}
+              >
+                View Year {successResult.completedYear} Annual Report
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -268,15 +293,16 @@ export function AdvanceQuarterForm({
 
   return (
     <form onSubmit={handleManualAdvance} className="space-y-6">
-      {/* TIME & SIMULATION CONTROLS BAR (Play/Resume + 1x, 3x, 10x, Boost) */}
-      <Card className="border-blue-500/30 bg-muted/20 shadow-md">
+      {/* TIME & SIMULATION CONTROLS BAR (Single-Quarter Run at chosen speed) */}
+      <Card className="border-blue-500/30 bg-muted/20 shadow-md overflow-hidden">
         <CardContent className="p-4 space-y-4">
+          {/* 5-Year Completion Banner if already done */}
           {isMandateComplete && (
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-amber-500/15 border border-amber-500/40 rounded-xl text-xs">
               <div className="flex items-center gap-2.5 min-w-0">
                 <span className="size-2 rounded-full bg-amber-400 shrink-0" />
                 <span className="text-foreground">
-                  <strong className="text-amber-400 font-bold">5-Year Executive Mandate Concluded:</strong> All 25 simulated quarters are finished. Controls are locked to protect official audit filings.
+                  <strong className="text-amber-400 font-bold">5-Year Executive Mandate Concluded:</strong> All 25 simulated quarters are finished. Simulation controls are locked to protect official audit filings.
                 </span>
               </div>
               <Button
@@ -292,37 +318,15 @@ export function AdvanceQuarterForm({
           )}
 
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            {/* Play/Pause & Speed Selection */}
-            <div className="flex items-center gap-3">
-              <Button
-                type="button"
-                variant={isPlaying ? "destructive" : "default"}
-                size="sm"
-                disabled={isMandateComplete}
-                onClick={() => setIsPlaying(!isPlaying)}
-                className={`gap-1.5 font-bold ${
-                  !isPlaying
-                    ? "bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white"
-                    : ""
-                }`}
-              >
-                {isPlaying ? (
-                  <>
-                    <Pause className="size-4 animate-pulse" /> Pause Simulation
-                  </>
-                ) : (
-                  <>
-                    <Play className="size-4" /> Resume & Auto-Run
-                  </>
-                )}
-              </Button>
-
+            {/* Speed Selector & Run Quarter Action */}
+            <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
               <div className="flex items-center gap-1 bg-background border rounded-lg p-0.5 text-xs font-mono">
+                <span className="text-[10px] text-muted-foreground uppercase px-2 font-sans font-bold">Speed:</span>
                 {(["1x", "3x", "10x", "boost"] as const).map((spd) => (
                   <button
                     type="button"
                     key={spd}
-                    disabled={isMandateComplete}
+                    disabled={isSimulating || isMandateComplete}
                     onClick={() => setSimSpeed(spd)}
                     className={`px-2.5 py-1 rounded transition-colors ${
                       simSpeed === spd
@@ -334,16 +338,37 @@ export function AdvanceQuarterForm({
                   </button>
                 ))}
               </div>
+
+              {/* Primary Run Quarter Button (Simulates ONLY the active quarter) */}
+              <Button
+                type="button"
+                size="sm"
+                disabled={isSimulating || isMandateComplete}
+                onClick={() => runQuarterSimulation(false)}
+                className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-bold gap-1.5 text-xs shadow-md"
+              >
+                {isSimulating ? (
+                  <>
+                    <Loader2 className="size-3.5 animate-spin" />
+                    <span>Simulating Q{activeQuarter} ({simSpeed})...</span>
+                  </>
+                ) : (
+                  <>
+                    <Play className="size-3.5" />
+                    <span>Run Quarter {activeQuarter} ({simSpeed})</span>
+                  </>
+                )}
+              </Button>
             </div>
 
-            {/* Manual Step Controls */}
-            <div className="flex items-center gap-2 w-full sm:w-auto">
+            {/* Step Advance / Month Controls */}
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => stepAdvance(true)}
-                disabled={loading || isPlaying || isMandateComplete}
+                onClick={() => runQuarterSimulation(true)}
+                disabled={isSimulating || isMandateComplete}
                 className="gap-1 text-xs"
               >
                 <Calendar className="size-3.5 text-blue-400" /> Advance Month (30d)
@@ -351,7 +376,7 @@ export function AdvanceQuarterForm({
               <Button
                 type="submit"
                 size="sm"
-                disabled={loading || isPlaying || isMandateComplete}
+                disabled={isSimulating || isMandateComplete}
                 className="bg-blue-600 hover:bg-blue-700 text-white gap-1 text-xs"
               >
                 <Zap className="size-3.5" /> Advance Quarter
@@ -359,28 +384,47 @@ export function AdvanceQuarterForm({
             </div>
           </div>
 
+          {/* SIMULATION LIVE PROGRESS BAR (Visible while simulating current quarter) */}
+          {isSimulating && (
+            <div className="space-y-1.5 pt-1">
+              <div className="flex items-center justify-between text-xs text-blue-400 font-medium">
+                <span className="flex items-center gap-1.5">
+                  <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
+                  Processing Year {activeYear} · Quarter {activeQuarter} operations at {simSpeed.toUpperCase()} speed...
+                </span>
+                <span className="font-mono text-[11px]">{simProgress}%</span>
+              </div>
+              <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-blue-500 to-cyan-400 transition-all duration-150 rounded-full"
+                  style={{ width: `${simProgress}%` }}
+                />
+              </div>
+            </div>
+          )}
+
           {/* LIVE STATUS MONITOR STRIP */}
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 pt-3 border-t border-border/60 text-xs">
             <div className="bg-background/80 p-2.5 rounded-lg border">
-              <span className="text-muted-foreground">Simulated Period</span>
+              <span className="text-muted-foreground text-[11px]">Current Quarter</span>
               <p className="font-bold text-sm text-blue-400 font-mono-numbers mt-0.5">
                 Year {activeYear} · Q{activeQuarter} / 5
               </p>
             </div>
             <div className="bg-background/80 p-2.5 rounded-lg border">
-              <span className="text-muted-foreground">Active Customers</span>
+              <span className="text-muted-foreground text-[11px]">Active Customers</span>
               <p className="font-bold text-sm text-foreground font-mono-numbers mt-0.5">
                 {customerCount} Accounts
               </p>
             </div>
             <div className="bg-background/80 p-2.5 rounded-lg border">
-              <span className="text-muted-foreground">Total Deposits</span>
+              <span className="text-muted-foreground text-[11px]">Total Deposits</span>
               <p className="font-bold text-sm font-mono-numbers text-cyan-400 mt-0.5">
                 {liveState ? formatCurrency(liveState.total_deposits, currency, true) : "£0"}
               </p>
             </div>
             <div className="bg-background/80 p-2.5 rounded-lg border">
-              <span className="text-muted-foreground">Quarterly P&L</span>
+              <span className="text-muted-foreground text-[11px]">Quarterly P&L</span>
               <p
                 className={`font-bold text-sm font-mono-numbers mt-0.5 ${
                   liveState && liveState.net_profit >= 0 ? "text-emerald-500" : "text-rose-500"
@@ -390,22 +434,12 @@ export function AdvanceQuarterForm({
               </p>
             </div>
             <div className="bg-background/80 p-2.5 rounded-lg border">
-              <span className="text-muted-foreground">Capital Ratio (CAR)</span>
+              <span className="text-muted-foreground text-[11px]">Capital Ratio (CAR)</span>
               <p className="font-bold text-sm font-mono-numbers text-foreground mt-0.5">
                 {liveState ? `${liveState.capital_adequacy_ratio}%` : "100%"}
               </p>
             </div>
           </div>
-
-          {isPlaying && (
-            <div className="flex items-center justify-between text-xs text-blue-400 bg-blue-500/10 px-3 py-1.5 rounded-lg border border-blue-500/20">
-              <span className="flex items-center gap-1.5 font-medium">
-                <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
-                Live Simulation Running at {simSpeed.toUpperCase()} Speed... (advancing quarters automatically)
-              </span>
-              <span className="font-mono text-[11px]">Click Pause anytime to freeze simulation</span>
-            </div>
-          )}
 
           {annualReportNotice && (
             <div className="flex items-center gap-2 text-xs text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20">
@@ -423,7 +457,7 @@ export function AdvanceQuarterForm({
             <AlertCircle className="size-5 text-amber-500 shrink-0" />
             <div className="text-xs">
               <strong className="text-foreground">Quarter 5 of 5 · Year-End Closing:</strong>{" "}
-              Advancing this quarter will conclude Year {activeYear} operations and trigger the generation of the official 15-Section Annual Report.
+              Running this quarter will conclude Year {activeYear} operations and trigger the generation of the official 15-Section Annual Report.
             </div>
           </CardContent>
         </Card>
@@ -600,13 +634,13 @@ export function AdvanceQuarterForm({
         <Button
           type="submit"
           size="lg"
-          disabled={loading || isPlaying || isMandateComplete}
+          disabled={isSimulating || isMandateComplete}
           className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold px-8"
         >
-          {loading ? (
+          {isSimulating ? (
             <>
               <Loader2 className="size-4 mr-2 animate-spin" />
-              Simulating Quarter...
+              Simulating Year {activeYear} · Q{activeQuarter} ({simSpeed})...
             </>
           ) : isMandateComplete ? (
             <>
@@ -616,7 +650,7 @@ export function AdvanceQuarterForm({
           ) : (
             <>
               <Zap className="size-4 mr-2" />
-              Advance to Next Quarter
+              Advance to Next Quarter (Year {activeYear} · Q{activeQuarter})
             </>
           )}
         </Button>
