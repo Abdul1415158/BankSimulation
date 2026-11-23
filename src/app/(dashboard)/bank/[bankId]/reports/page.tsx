@@ -128,26 +128,26 @@ export default function ReportsPage() {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md pt-2 pb-3 sm:pb-4 border-b -mx-3 px-3 sm:mx-0 sm:px-0">
           <TabsList className="grid grid-cols-2 sm:grid-cols-4 w-full h-auto p-1 bg-muted/60 border border-border rounded-xl gap-1">
-            <TabsTrigger value="annual-reports" className="gap-1 sm:gap-1.5 py-2 sm:py-2.5 px-2 text-xs sm:text-sm font-semibold flex items-center justify-center">
+            <TabsTrigger value="annual-reports" className="gap-1.5 py-2 sm:py-2.5 px-3 text-xs sm:text-sm font-semibold flex items-center justify-center whitespace-nowrap">
               <BookOpen className="size-3.5 sm:size-4 text-blue-500 shrink-0" />
-              <span className="truncate">Annual Reports</span>
+              <span>Annual Reports</span>
               {annualReports.some((r) => !r.is_read) && (
-                <span className="bg-rose-500 text-white text-[9px] sm:text-[10px] font-bold px-1.5 py-0.2 rounded-full ml-0.5 shrink-0">
+                <span className="bg-rose-500 text-white text-[9px] sm:text-[10px] font-bold px-1.5 py-0.2 rounded-full ml-1 shrink-0">
                   NEW
                 </span>
               )}
             </TabsTrigger>
-            <TabsTrigger value="balance-sheet" className="gap-1 sm:gap-1.5 py-2 sm:py-2.5 px-2 text-xs sm:text-sm font-semibold flex items-center justify-center">
+            <TabsTrigger value="balance-sheet" className="gap-1.5 py-2 sm:py-2.5 px-3 text-xs sm:text-sm font-semibold flex items-center justify-center whitespace-nowrap">
               <Scale className="size-3.5 sm:size-4 text-cyan-500 shrink-0" />
-              <span className="truncate">Balance Sheet</span>
+              <span>Balance Sheet</span>
             </TabsTrigger>
-            <TabsTrigger value="income-statement" className="gap-1 sm:gap-1.5 py-2 sm:py-2.5 px-2 text-xs sm:text-sm font-semibold flex items-center justify-center">
+            <TabsTrigger value="income-statement" className="gap-1.5 py-2 sm:py-2.5 px-3 text-xs sm:text-sm font-semibold flex items-center justify-center whitespace-nowrap">
               <TrendingUp className="size-3.5 sm:size-4 text-emerald-500 shrink-0" />
-              <span className="truncate">Profit & Loss</span>
+              <span>Profit & Loss</span>
             </TabsTrigger>
-            <TabsTrigger value="history" className="gap-1 sm:gap-1.5 py-2 sm:py-2.5 px-2 text-xs sm:text-sm font-semibold flex items-center justify-center">
+            <TabsTrigger value="history" className="gap-1.5 py-2 sm:py-2.5 px-3 text-xs sm:text-sm font-semibold flex items-center justify-center whitespace-nowrap">
               <Landmark className="size-3.5 sm:size-4 text-purple-500 shrink-0" />
-              <span className="truncate">Quarterly Ledger</span>
+              <span>Quarterly Ledger</span>
             </TabsTrigger>
           </TabsList>
         </div>
@@ -248,32 +248,32 @@ export default function ReportsPage() {
                 <Card className="border-blue-500/30 shadow-md overflow-hidden">
                   <CardHeader className="border-b p-4 sm:p-6 pb-4 bg-muted/20">
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                          <Badge variant="outline" className="text-blue-400 border-blue-500/30 text-[11px]">
-                            Official Filing · Year {selectedReport.year} (Calendar {selectedReport.calendar_year})
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                          <Badge variant="outline" className="text-blue-400 border-blue-500/30 text-xs py-0.5 px-2.5">
+                            Official Regulatory Filing · Year {selectedReport.year} (Calendar {selectedReport.calendar_year})
                           </Badge>
-                          <Badge className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[11px]">
+                          <Badge className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs py-0.5 px-2.5">
                             Audited 5-Quarter Package
                           </Badge>
                         </div>
-                        <CardTitle className="text-lg sm:text-xl font-bold tracking-tight break-words">
+                        <CardTitle className="text-lg sm:text-2xl font-bold tracking-tight text-foreground">
                           {bank.name} — Year {selectedReport.year} Comprehensive Annual Report
                         </CardTitle>
-                        <CardDescription className="text-xs mt-1">
-                          CEO Address, Full Financial Statements, Solvency Position, and Supervisory Disclosures.
+                        <CardDescription className="text-xs sm:text-sm mt-1 text-muted-foreground leading-relaxed">
+                          Statutory CEO Address, Audited Financial Statements, Prudential Solvency Position, and Supervisory Disclosures.
                         </CardDescription>
                       </div>
 
-                      {/* Section Filter Pills (Responsive on mobile) */}
-                      <div className="flex flex-wrap items-center gap-1 bg-background border p-1 rounded-lg text-xs w-full lg:w-auto shrink-0">
+                      {/* Section Filter Pills */}
+                      <div className="flex items-center gap-1.5 bg-background/80 border p-1 rounded-xl text-xs shrink-0 self-start lg:self-center overflow-x-auto max-w-full">
                         <button
                           type="button"
                           onClick={() => setActiveSectionKey("all")}
-                          className={`flex-1 sm:flex-initial px-2.5 py-1.5 sm:py-1 rounded text-xs font-medium transition-colors text-center ${
+                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap ${
                             activeSectionKey === "all"
-                              ? "bg-blue-600 text-white font-bold"
-                              : "text-muted-foreground hover:text-foreground"
+                              ? "bg-blue-600 text-white shadow-sm"
+                              : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
                           }`}
                         >
                           All 15 Sections
@@ -281,10 +281,10 @@ export default function ReportsPage() {
                         <button
                           type="button"
                           onClick={() => setActiveSectionKey("exec")}
-                          className={`flex-1 sm:flex-initial px-2.5 py-1.5 sm:py-1 rounded text-xs font-medium transition-colors text-center ${
+                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap ${
                             activeSectionKey === "exec"
-                              ? "bg-blue-600 text-white font-bold"
-                              : "text-muted-foreground hover:text-foreground"
+                              ? "bg-blue-600 text-white shadow-sm"
+                              : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
                           }`}
                         >
                           Financial & Executive
@@ -292,10 +292,10 @@ export default function ReportsPage() {
                         <button
                           type="button"
                           onClick={() => setActiveSectionKey("risk")}
-                          className={`flex-1 sm:flex-initial px-2.5 py-1.5 sm:py-1 rounded text-xs font-medium transition-colors text-center ${
+                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap ${
                             activeSectionKey === "risk"
-                              ? "bg-blue-600 text-white font-bold"
-                              : "text-muted-foreground hover:text-foreground"
+                              ? "bg-blue-600 text-white shadow-sm"
+                              : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
                           }`}
                         >
                           Risk & Regulation
@@ -317,55 +317,78 @@ export default function ReportsPage() {
                           }
                           return true;
                         })
-                        .map(([key, sec]: [string, AnnualReportSection]) => (
-                          <div
-                            key={key}
-                            className={`p-3.5 sm:p-4 rounded-xl border bg-card/60 transition-all space-y-2.5 sm:space-y-3 min-w-0 ${
-                              sec.status === "negative" ? "border-rose-500/30" : "border-border hover:border-blue-500/30"
-                            }`}
-                          >
-                            <div className="flex items-start sm:items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
-                              <h4 className="font-bold text-xs sm:text-sm text-foreground flex items-center gap-1.5 break-words min-w-0">
-                                <span>{sec.title}</span>
-                              </h4>
-                              {sec.status && (
-                                <Badge
-                                  variant="outline"
-                                  className={`text-[10px] shrink-0 self-start sm:self-auto ${
-                                    sec.status === "positive"
-                                      ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
-                                      : sec.status === "warning"
-                                      ? "bg-amber-500/10 text-amber-400 border-amber-500/30"
-                                      : "bg-rose-500/10 text-rose-400 border-rose-500/30"
+                        .map(([key, sec]: [string, AnnualReportSection]) => {
+                          const isFullWidth = key === "executive_summary" || key === "recommendations_next_year";
+                          return (
+                            <div
+                              key={key}
+                              className={`p-4 sm:p-5 rounded-xl border bg-card/70 backdrop-blur-sm transition-all space-y-3 min-w-0 ${
+                                isFullWidth ? "md:col-span-2" : ""
+                              } ${
+                                sec.status === "negative"
+                                  ? "border-rose-500/40 bg-rose-500/5"
+                                  : sec.status === "warning"
+                                  ? "border-amber-500/40 bg-amber-500/5"
+                                  : "border-border hover:border-blue-500/40"
+                              }`}
+                            >
+                              <div className="flex items-start sm:items-center justify-between gap-3">
+                                <h4 className="font-bold text-sm sm:text-base text-foreground leading-snug flex-1 min-w-0">
+                                  {sec.title}
+                                </h4>
+                                {sec.status && (
+                                  <Badge
+                                    variant="outline"
+                                    className={`text-[11px] font-semibold shrink-0 whitespace-nowrap px-2.5 py-0.5 ${
+                                      sec.status === "positive"
+                                        ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                                        : sec.status === "warning"
+                                        ? "bg-amber-500/10 text-amber-400 border-amber-500/30"
+                                        : "bg-rose-500/10 text-rose-400 border-rose-500/30"
+                                    }`}
+                                  >
+                                    {sec.status === "positive" ? (
+                                      <CheckCircle2 className="size-3 mr-1 inline-block" />
+                                    ) : (
+                                      <AlertTriangle className="size-3 mr-1 inline-block" />
+                                    )}
+                                    {sec.status.toUpperCase()}
+                                  </Badge>
+                                )}
+                              </div>
+
+                              <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
+                                {sec.content}
+                              </p>
+
+                              {sec.metrics && Object.keys(sec.metrics).length > 0 && (
+                                <div
+                                  className={`grid gap-2 pt-2 border-t border-border/60 text-xs ${
+                                    isFullWidth
+                                      ? "grid-cols-2 md:grid-cols-4"
+                                      : Object.keys(sec.metrics).length === 1
+                                      ? "grid-cols-1"
+                                      : "grid-cols-1 sm:grid-cols-2"
                                   }`}
                                 >
-                                  {sec.status === "positive" ? (
-                                    <CheckCircle2 className="size-2.5 mr-1" />
-                                  ) : (
-                                    <AlertTriangle className="size-2.5 mr-1" />
-                                  )}
-                                  {sec.status.toUpperCase()}
-                                </Badge>
+                                  {Object.entries(sec.metrics).map(([mKey, mVal]) => (
+                                    <div
+                                      key={mKey}
+                                      className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-muted/40 border border-border/50 min-w-0"
+                                    >
+                                      <span className="text-muted-foreground text-[11px] font-medium truncate shrink-0 max-w-[60%]">
+                                        {mKey}
+                                      </span>
+                                      <span className="font-semibold text-foreground font-mono-numbers text-[11px] text-right truncate">
+                                        {String(mVal)}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
                               )}
                             </div>
-                            <p className="text-xs text-muted-foreground leading-relaxed break-words">
-                              {sec.content}
-                            </p>
-
-                            {sec.metrics && Object.keys(sec.metrics).length > 0 && (
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-border/50 text-xs">
-                                {Object.entries(sec.metrics).map(([mKey, mVal]) => (
-                                  <div key={mKey} className="bg-muted/40 p-2 rounded border text-[11px] min-w-0">
-                                    <span className="text-muted-foreground text-[10px] block truncate">{mKey}</span>
-                                    <p className="font-semibold text-foreground font-mono-numbers mt-0.5 truncate">
-                                      {String(mVal)}
-                                    </p>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        ))}
+                          );
+                        })}
                     </div>
                   </CardContent>
                 </Card>

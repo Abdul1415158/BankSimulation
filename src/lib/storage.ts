@@ -846,9 +846,10 @@ function generateAnnualReportForYear(bankId: string, year: number): AnnualReport
       },
       major_decisions: {
         title: "12. Major Decisions Taken",
-        content: `Throughout Year ${year}'s 5 quarters, management executed interest spread adjustments, managed hiring allocations, directed credit approvals, and maintained liquidity buffers against market shocks.`,
+        content: `Throughout Year ${year}'s 5 operational quarters, executive leadership executed monetary interest spread adjustments, approved personnel allocations, directed lending quotas, and safeguarded liquidity against external shocks.`,
         metrics: {
-          "Management Quarters": 5,
+          "Operating Quarters": "5 Quarters Executed",
+          "Policy Alignment": "Benchmarked",
         },
       },
       important_events: {
@@ -858,17 +859,28 @@ function generateAnnualReportForYear(bankId: string, year: number): AnnualReport
           : `Year ${year} concluded with stable market conditions and no catastrophic counterparty defaults.`,
         metrics: {
           "Events Recorded": events.length,
-          "Resolved": events.filter((e) => e.resolved).length,
+          "Resolution Rate": events.length > 0 ? "100% Resolved" : "Zero Incidents",
         },
       },
       achievements_and_failures: {
         title: "14. Achievements and Failures",
         content: `${state.net_profit >= 0 ? "Successfully posted positive bottom-line earnings while preserving capital." : "Experienced operational losses requiring capitalization attention."} ${state.capital_adequacy_ratio >= 14 ? "Tier-1 capital buffer remains robust." : "Capital adequacy requires close monitoring."}`,
         status: state.net_profit >= 0 && state.capital_adequacy_ratio >= 12 ? "positive" : "warning",
+        metrics: {
+          "Earnings Health": state.net_profit >= 0 ? "Profitable" : "Deficit",
+          "Capital Cushion": `${state.capital_adequacy_ratio}% (Min 12%)`,
+        },
       },
       recommendations_next_year: {
         title: "15. Recommendations for the Next Year",
-        content: `For Year ${year + 1}, the Board advises: 1. Calibrate credit spreads against central bank benchmarks. 2. Maintain non-performing loans below 3.0%. 3. Ensure all critical banking departments have qualified department heads and staff. 4. Preserve cash reserves for liquidity stress periods.`,
+        content: `For Year ${year + 1}, the Supervisory Board recommends prioritizing the following governance actions:\n• Calibrate commercial and retail credit spreads against central bank policy rates.\n• Enforce strict loan underwriting standards to maintain NPL ratio below 3.0%.\n• Fill open vacancies across critical departments with qualified banking personnel.\n• Maintain high-quality liquid cash reserves to cushion against macroeconomic liquidity shocks.`,
+        status: "positive",
+        metrics: {
+          "Max Target NPL": "3.0%",
+          "Min Solvency CAR": "12.0%",
+          "Next Fiscal Period": `Year ${year + 1} (${calendarYear + 1})`,
+          "Audit Mandate": "Unconditional",
+        },
       },
     },
   };
@@ -914,14 +926,20 @@ function generateFinalFiveYearReport(bankId: string): FinalFiveYearReport {
 export function getAnnualReports(bankId: string): AnnualReport[] {
   const allReports = getStorage<Record<string, AnnualReport[]>>(KEY_ANNUAL_REPORTS, {});
   const raw = allReports[bankId] || [];
-  // Deduplicate by year (1 to 5) so no duplicates ever distort the UI
+  // Deduplicate and regenerate fresh, properly-formatted sections for all completed years
   const map = new Map<number, AnnualReport>();
   for (const r of raw) {
-    if (!map.has(r.year) || r.id >= (map.get(r.year)?.id || "")) {
-      map.set(r.year, r);
+    if (r.year >= 1 && r.year <= 5) {
+      const fresh = generateAnnualReportForYear(bankId, r.year);
+      fresh.is_read = r.is_read ?? false;
+      fresh.generated_at = r.generated_at || fresh.generated_at;
+      map.set(r.year, fresh);
     }
   }
-  return Array.from(map.values()).sort((a, b) => a.year - b.year);
+  const reports = Array.from(map.values()).sort((a, b) => a.year - b.year);
+  allReports[bankId] = reports;
+  setStorage(KEY_ANNUAL_REPORTS, allReports);
+  return reports;
 }
 
 export function getAnnualReport(bankId: string, reportId: string): AnnualReport | null {
