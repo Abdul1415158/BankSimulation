@@ -127,27 +127,39 @@ export default function ReportsPage() {
       {/* STICKY TOP TAB NAVIGATION BAR (Never gets pushed down!) */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md pt-2 pb-3 sm:pb-4 border-b -mx-3 px-3 sm:mx-0 sm:px-0">
-          <TabsList className="grid grid-cols-2 sm:grid-cols-4 w-full h-auto p-1 bg-muted/60 border border-border rounded-xl gap-1">
-            <TabsTrigger value="annual-reports" className="gap-1.5 py-2 sm:py-2.5 px-3 text-xs sm:text-sm font-semibold flex items-center justify-center whitespace-nowrap">
-              <BookOpen className="size-3.5 sm:size-4 text-blue-500 shrink-0" />
-              <span>Annual Reports</span>
+          <TabsList className="grid grid-cols-2 lg:grid-cols-4 w-full h-auto p-1.5 bg-muted/60 border border-border rounded-xl gap-1.5">
+            <TabsTrigger
+              value="annual-reports"
+              className="h-auto py-2.5 px-3 text-xs sm:text-sm font-semibold flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg min-w-0 overflow-hidden"
+            >
+              <BookOpen className="size-4 text-blue-500 shrink-0" />
+              <span className="truncate">Annual Reports</span>
               {annualReports.some((r) => !r.is_read) && (
-                <span className="bg-rose-500 text-white text-[9px] sm:text-[10px] font-bold px-1.5 py-0.2 rounded-full ml-1 shrink-0">
+                <span className="bg-rose-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full ml-1 shrink-0 leading-none">
                   NEW
                 </span>
               )}
             </TabsTrigger>
-            <TabsTrigger value="balance-sheet" className="gap-1.5 py-2 sm:py-2.5 px-3 text-xs sm:text-sm font-semibold flex items-center justify-center whitespace-nowrap">
-              <Scale className="size-3.5 sm:size-4 text-cyan-500 shrink-0" />
-              <span>Balance Sheet</span>
+            <TabsTrigger
+              value="balance-sheet"
+              className="h-auto py-2.5 px-3 text-xs sm:text-sm font-semibold flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg min-w-0 overflow-hidden"
+            >
+              <Scale className="size-4 text-cyan-500 shrink-0" />
+              <span className="truncate">Balance Sheet</span>
             </TabsTrigger>
-            <TabsTrigger value="income-statement" className="gap-1.5 py-2 sm:py-2.5 px-3 text-xs sm:text-sm font-semibold flex items-center justify-center whitespace-nowrap">
-              <TrendingUp className="size-3.5 sm:size-4 text-emerald-500 shrink-0" />
-              <span>Profit & Loss</span>
+            <TabsTrigger
+              value="income-statement"
+              className="h-auto py-2.5 px-3 text-xs sm:text-sm font-semibold flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg min-w-0 overflow-hidden"
+            >
+              <TrendingUp className="size-4 text-emerald-500 shrink-0" />
+              <span className="truncate">Profit & Loss</span>
             </TabsTrigger>
-            <TabsTrigger value="history" className="gap-1.5 py-2 sm:py-2.5 px-3 text-xs sm:text-sm font-semibold flex items-center justify-center whitespace-nowrap">
-              <Landmark className="size-3.5 sm:size-4 text-purple-500 shrink-0" />
-              <span>Quarterly Ledger</span>
+            <TabsTrigger
+              value="history"
+              className="h-auto py-2.5 px-3 text-xs sm:text-sm font-semibold flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg min-w-0 overflow-hidden"
+            >
+              <Landmark className="size-4 text-purple-500 shrink-0" />
+              <span className="truncate">Quarterly Ledger</span>
             </TabsTrigger>
           </TabsList>
         </div>
