@@ -133,7 +133,7 @@ export default function ReportsPage() {
       </div>
 
       {/* TOP TAB NAVIGATION BAR (Roomy, Never overlaps, Clearly separated from Report Section) */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex flex-col space-y-6">
         <div className="w-full pb-3 border-b border-border/60">
           <TabsList className="grid grid-cols-2 lg:grid-cols-4 w-full h-auto p-1.5 bg-muted/40 border border-border/80 rounded-2xl gap-2 shadow-sm">
             <TabsTrigger
@@ -173,7 +173,7 @@ export default function ReportsPage() {
         </div>
 
         {/* 1. ANNUAL REPORTS TAB */}
-        <TabsContent value="annual-reports" className="space-y-6 pt-2">
+        <TabsContent value="annual-reports" className="w-full space-y-6 pt-2">
           {/* FINAL 5-YEAR CLIMAX BANNER (Inside Annual Reports Tab) */}
           {finalReport && (
             <Card className="border-amber-500/40 bg-gradient-to-r from-amber-500/15 via-amber-500/5 to-transparent shadow-md overflow-hidden">
@@ -615,7 +615,7 @@ export default function ReportsPage() {
         </TabsContent>
 
         {/* 2. BALANCE SHEET TAB */}
-        <TabsContent value="balance-sheet" className="space-y-6 pt-2">
+        <TabsContent value="balance-sheet" className="w-full space-y-6 pt-2">
           <Card className="overflow-hidden rounded-2xl border-border/80 shadow-md">
             <CardHeader className="border-b p-5 sm:p-6 pb-4 bg-muted/20">
               <div className="flex items-start sm:items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
@@ -683,7 +683,7 @@ export default function ReportsPage() {
         </TabsContent>
 
         {/* 3. PROFIT & LOSS TAB */}
-        <TabsContent value="income-statement" className="space-y-6 pt-2">
+        <TabsContent value="income-statement" className="w-full space-y-6 pt-2">
           <Card className="overflow-hidden rounded-2xl border-border/80 shadow-md">
             <CardHeader className="border-b p-5 sm:p-6 pb-4 bg-muted/20">
               <CardTitle className="text-lg sm:text-xl font-bold break-words">Statement of Comprehensive Income (P&L)</CardTitle>
@@ -717,7 +717,7 @@ export default function ReportsPage() {
         </TabsContent>
 
         {/* 4. QUARTERLY HISTORY TAB */}
-        <TabsContent value="history" className="space-y-6 pt-2">
+        <TabsContent value="history" className="w-full space-y-6 pt-2">
           <Card className="overflow-hidden rounded-2xl border-border/80 shadow-md">
             <CardHeader className="border-b p-5 sm:p-6 pb-4 bg-muted/20 flex flex-row items-center justify-between gap-3">
               <div>
